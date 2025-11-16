@@ -720,10 +720,17 @@
             showAuthView(); 
         });
 
-        // Simple alerts for nav links
-        aboutLink.addEventListener('click', e => { e.preventDefault(); alert("Btl — a simple AI chatbot created with ♡ by rdb__.19 / Red4."); navMenu.classList.remove('active'); });
-        contactLink.addEventListener('click', e => { e.preventDefault(); alert("For any contact the owner on instagram: https://www.instagram.com/rdb__.19/."); navMenu.classList.remove('active'); });
-
+      // Simple alerts for nav links
+aboutLink.addEventListener('click', e => { 
+    e.preventDefault(); 
+    alert("Btl AI — Your intelligent assistant created with ♡ by red4 . Btl AI helps you with conversations, task planning, and information analysis with advanced AI tools."); 
+    navMenu.classList.remove('active'); 
+});
+contactLink.addEventListener('click', e => { 
+    e.preventDefault(); 
+    alert("Contact Information:\n\nEmail: btlreda852@gmail.com\nWebsite: coming soon\nSupport Hours: 24/7\n\nFor technical support or inquiries, please reach out to our team."); 
+    navMenu.classList.remove('active'); 
+});
         // --- Initial Auth Check ---
         const token = sessionStorage.getItem('authToken');
         if (token) {
