@@ -433,7 +433,7 @@ app.post('/api/chat', authMiddleware, rateLimiter, async (req, res) => {
   }
 
   // 5) Fallback: use Gemini AI (text-only). Build system instruction using personality JSON.
-  let systemInstruction = "You are Nyx, a friendly assistant. Keep replies short and helpful.";
+  let systemInstruction = "You are Nyx, a friendly assistant. Keep replies helpful.";
   if (personalityJSON && typeof personalityJSON === 'object') {
     // build small instruction
     if (personalityJSON.tone) systemInstruction += ` Tone: ${personalityJSON.tone}.`;
@@ -451,7 +451,7 @@ app.post('/api/chat', authMiddleware, rateLimiter, async (req, res) => {
     }
 
     const aiResp = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       // Pass the complete conversation history (contents)
       contents: contents,
       config: {
