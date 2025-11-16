@@ -12,7 +12,25 @@
     :root { 
         --purple: #9333ea; 
         --purple-2: #a855f7; 
-        --dark: #0c001f; 
+        --dark: #0c001f;
+        --light-bg: #f8fafc;
+        --light-card: #ffffff;
+        --light-text: #1e293b;
+        --light-border: #e2e8f0;
+    }
+    
+    [data-theme="light"] {
+        --bg-primary: var(--light-bg);
+        --bg-card: var(--light-card);
+        --text-primary: var(--light-text);
+        --border-color: var(--light-border);
+    }
+    
+    [data-theme="dark"] {
+        --bg-primary: #0c001f;
+        --bg-card: rgba(17, 17, 17, 0.95);
+        --text-primary: #ffffff;
+        --border-color: rgba(255, 255, 255, 0.1);
     }
     
     html,body { 
@@ -29,10 +47,15 @@
         align-items: center;
         justify-content: center;
         font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        color: #fff;
+        color: var(--text-primary);
         transition: all 0.4s ease;
         padding: 2rem;
         position: relative;
+    }
+
+    body[data-theme="light"] {
+        background: linear-gradient(-45deg, #e0e7ff, #c7d2fe, #ddd6fe, #c7d2fe);
+        color: var(--text-primary);
     }
 
     /* Animated background */
@@ -53,6 +76,15 @@
         -webkit-backdrop-filter: blur(12px);
         border-radius: 20px;
     }
+
+    [data-theme="light"] .glass-container {
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(147, 51, 234, 0.2);
+        box-shadow: 0 8px 32px rgba(147, 51, 234, 0.1),
+                    0 0 0 1px rgba(147, 51, 234, 0.1),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+        color: var(--text-primary);
+    }
     
     /* --- MODAL --- */
     .modal {
@@ -69,6 +101,10 @@
         padding: 1rem;
         backdrop-filter: blur(5px);
     }
+
+    [data-theme="light"] .modal {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
     
     .modal-content {
         background: rgba(17, 17, 17, 0.95);
@@ -78,6 +114,12 @@
         max-width: 400px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         border: 1px solid rgba(147, 51, 234, 0.3);
+    }
+
+    [data-theme="light"] .modal-content {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(147, 51, 234, 0.2);
+        box-shadow: 0 20px 40px rgba(147, 51, 234, 0.1);
     }
     
     .tool-button {
@@ -94,6 +136,12 @@
         font-weight: 500;
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
+    }
+
+    [data-theme="light"] .tool-button {
+        background: rgba(147,51,234, 0.1);
+        border: 1px solid rgba(147,51,234, 0.3);
+        color: var(--text-primary);
     }
     
     .tool-button:hover { 
@@ -189,6 +237,10 @@
         border-radius: 10px;
     }
 
+    [data-theme="light"] #chat-container::-webkit-scrollbar-track {
+        background: rgba(147, 51, 234, 0.1);
+    }
+
     .message {
         margin-bottom: 1rem;
         padding: 1rem 1.25rem;
@@ -229,6 +281,13 @@
         border: 1px solid rgba(255,255,255,0.1);
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
+
+    [data-theme="light"] .bot-message {
+        background: rgba(248, 250, 252, 0.9);
+        color: var(--text-primary);
+        border: 1px solid rgba(147, 51, 234, 0.2);
+        box-shadow: 0 4px 15px rgba(147, 51, 234, 0.1);
+    }
     
     .tool-message {
         background: rgba(51, 51, 51, 0.8);
@@ -240,6 +299,12 @@
         border-radius: 12px;
         font-size: 0.9rem;
         border: 1px solid rgba(147,51,234,0.3);
+    }
+
+    [data-theme="light"] .tool-message {
+        background: rgba(147, 51, 234, 0.1);
+        color: var(--text-primary);
+        border: 1px solid rgba(147, 51, 234, 0.2);
     }
 
     /* Typing Indicator */
@@ -257,6 +322,11 @@
         border-bottom-left-radius: 6px;
         max-width: 85px;
         border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    [data-theme="light"] .typing-dots {
+        background: rgba(248, 250, 252, 0.9);
+        border: 1px solid rgba(147, 51, 234, 0.2);
     }
     
     .typing-dots span {
@@ -307,6 +377,12 @@
         backdrop-filter: blur(10px);
         font-size: 1rem;
     }
+
+    [data-theme="light"] .input-field {
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--text-primary);
+        border: 1px solid rgba(147, 51, 234, 0.3);
+    }
     
     .input-field:focus {
         border-color: var(--purple-2);
@@ -317,6 +393,10 @@
     
     .input-field::placeholder {
         color: rgba(255,255,255,0.6);
+    }
+
+    [data-theme="light"] .input-field::placeholder {
+        color: rgba(30, 41, 59, 0.6);
     }
     
     .auth-button {
@@ -356,18 +436,29 @@
         right: 1.5rem; 
         z-index: 1000; 
         display: none;
+        gap: 0.5rem;
     }
     
-    #menu-icon {
+    #menu-icon, #theme-toggle {
         background: rgba(147,51,234,0.2);
         border: 1px solid rgba(147,51,234,0.4);
         border-radius: 12px;
         padding: 0.75rem;
         backdrop-filter: blur(10px);
         transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    [data-theme="light"] #menu-icon,
+    [data-theme="light"] #theme-toggle {
+        background: rgba(147, 51, 234, 0.1);
+        border: 1px solid rgba(147, 51, 234, 0.3);
     }
     
-    #menu-icon:hover {
+    #menu-icon:hover, #theme-toggle:hover {
         background: rgba(147,51,234,0.3);
         transform: scale(1.1);
     }
@@ -387,6 +478,12 @@
         backdrop-filter: blur(20px);
         width: 280px;
     }
+
+    [data-theme="light"] #nav-menu {
+        background: rgba(255, 255, 255, 0.95);
+        border-left: 1px solid rgba(147, 51, 234, 0.2);
+        box-shadow: -5px 0 30px rgba(147, 51, 234, 0.1);
+    }
     
     #nav-menu.active { transform: translateX(0); }
     
@@ -401,6 +498,11 @@
         color: white;
         font-size: 1rem;
         width: 100%;
+    }
+
+    [data-theme="light"] #nav-menu a,
+    [data-theme="light"] #nav-menu button {
+        color: var(--text-primary);
     }
     
     #nav-menu a:hover, #nav-menu button:hover {
@@ -452,10 +554,35 @@
         pointer-events: none;
         z-index: -1;
     }
+
+    [data-theme="light"] #particle-canvas {
+        display: none;
+    }
+
+    /* Theme Toggle Animation */
+    .theme-icon {
+        transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] .sun-icon {
+        display: none;
+    }
+
+    [data-theme="light"] .moon-icon {
+        display: none;
+    }
+
+    [data-theme="dark"] .moon-icon {
+        display: block;
+    }
+
+    [data-theme="light"] .sun-icon {
+        display: block;
+    }
 </style>
 </head>
 
-<body>
+<body data-theme="dark">
     <!-- Particle Background -->
     <canvas id="particle-canvas"></canvas>
 
@@ -485,8 +612,12 @@
     </div>
 
     <!-- NAV/HEADER (Only visible when logged in) -->
-    <div id="header" class="p-4">
-        <div id="menu-icon" class="text-2xl cursor-pointer" style="color:var(--purple-2);">☰</div>
+    <div id="header" class="p-4 flex">
+        <div id="theme-toggle" class="text-xl mr-2">
+            <span class="theme-icon sun-icon">☀️</span>
+            <span class="theme-icon moon-icon">🌙</span>
+        </div>
+        <div id="menu-icon" class="text-xl">☰</div>
     </div>
 
     <div id="nav-menu" class="">
@@ -576,6 +707,7 @@
     const eyeL = document.getElementById("eyeL");
     const eyeR = document.getElementById("eyeR");
     const typingIndicator = document.getElementById("typing-indicator");
+    const themeToggle = document.getElementById("theme-toggle");
 
     const header = document.getElementById("header");
     const navMenu = document.getElementById("nav-menu");
@@ -595,9 +727,72 @@
     const initialMessage = "Welcome back! What can I help you with today?";
     const API_BASE = '';
 
+    // --- THEME MANAGEMENT ---
+    function initTheme() {
+        const savedTheme = localStorage.getItem('btl-theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('btl-theme', newTheme);
+        updateThemeIcon(newTheme);
+        
+        // Reinitialize particles if switching to dark mode
+        if (newTheme === 'dark') {
+            initParticles();
+        }
+    }
+
+    function updateThemeIcon(theme) {
+        const sunIcon = document.querySelector('.sun-icon');
+        const moonIcon = document.querySelector('.moon-icon');
+        
+        if (theme === 'dark') {
+            sunIcon.style.display = 'none';
+            moonIcon.style.display = 'block';
+        } else {
+            sunIcon.style.display = 'block';
+            moonIcon.style.display = 'none';
+        }
+    }
+
+    // --- CREDENTIALS REMEMBERING ---
+    function rememberCredentials(email, password) {
+        if (email && password) {
+            localStorage.setItem('btl-remembered-email', email);
+            // Note: In production, you should never store passwords in localStorage
+            // This is just for demo purposes
+            localStorage.setItem('btl-remembered-password', password);
+        }
+    }
+
+    function loadRememberedCredentials() {
+        const email = localStorage.getItem('btl-remembered-email');
+        const password = localStorage.getItem('btl-remembered-password');
+        
+        if (email) {
+            document.getElementById('login-email').value = email;
+        }
+        if (password) {
+            document.getElementById('login-password').value = password;
+        }
+    }
+
+    function clearRememberedCredentials() {
+        localStorage.removeItem('btl-remembered-email');
+        localStorage.removeItem('btl-remembered-password');
+    }
+
     // --- PARTICLE BACKGROUND ---
     function initParticles() {
         const canvas = document.getElementById('particle-canvas');
+        if (!canvas) return;
+        
         const ctx = canvas.getContext('2d');
         
         canvas.width = window.innerWidth;
@@ -618,6 +813,11 @@
         }
         
         function animate() {
+            // Only animate if in dark mode and canvas is visible
+            if (document.body.getAttribute('data-theme') !== 'dark') {
+                return;
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             particles.forEach(particle => {
@@ -689,10 +889,13 @@
         chatHistory = [];
         chatContainer.innerHTML = '';
         hideTypingIndicator();
+        
+        // Load remembered credentials
+        loadRememberedCredentials();
     }
 
     function showChatView() {
-        header.style.display = 'block';
+        header.style.display = 'flex';
         loginView.style.display = 'none';
         chatView.style.display = 'flex';
         document.getElementById("eyes").style.display = 'flex';
@@ -954,6 +1157,9 @@
             const data = await resp.json();
 
             if (resp.ok && data.token) {
+                // Remember credentials
+                rememberCredentials(email, password);
+                
                 sessionStorage.setItem('authToken', data.token);
                 sessionStorage.removeItem('chatHistory'); 
                 showChatView();
@@ -970,8 +1176,14 @@
 
     // --- INITIALIZATION ---
     function initializeApp() {
+        // Initialize theme
+        initTheme();
+        
         // Initialize particles
         initParticles();
+
+        // Theme toggle event
+        themeToggle.addEventListener('click', toggleTheme);
 
         // Form Submission Handlers
         loginForm.addEventListener('submit', (e) => handleAuth(e, 'login'));
@@ -1003,6 +1215,7 @@
         logoutButton.addEventListener('click', () => { 
             sessionStorage.removeItem('authToken'); 
             sessionStorage.removeItem('chatHistory'); 
+            clearRememberedCredentials();
             navMenu.classList.remove('active');
             showAuthView(); 
         });
