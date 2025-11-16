@@ -54,8 +54,8 @@ const loadJSON = (filename) => {
   return null;
 };
 
-const responsesJSON = loadJSON('responses.json') || {};      // { "hello": "Hi!" }
-const commandsJSON = loadJSON('commands.json') || {};        // { "about": "I am Nyx..." }
+const responsesJSON = loadJSON('responses.json') || {};     // { "hello": "Hi!" }
+const commandsJSON = loadJSON('commands.json') || {};       // { "about": "I am Nyx..." }
 const personalityJSON = loadJSON('personality.json') || {};  // { "tone": "...", "greeting": "..." }
 
 // -------------------
@@ -336,12 +336,17 @@ app.get('/api/commands', (req, res) => {
 });
 
 // ------------ CHAT ROUTE (main) ------------
-// Accepts { message: "..." } and optional Authorization Bearer token for user context
+// Accepts { prompt: "...", history: [...] } and optional Authorization Bearer token for user context
 app.post('/api/chat', authMiddleware, rateLimiter, async (req, res) => {
   const user = req.user || null;
   const userId = user ? user._id || user.id : null;
 
-  const userMessage = (req.body && req.body.message) ? String(req.body.message) : '';
+  // *** FIX 1: Check for 'prompt' (sent by index.html) instead of 'message' ***
+  const userMessage = (req.body && req.body.prompt) ? String(req.body.prompt) : '';
+  // *** FIX 2: Capture the conversation history sent by index.html ***
+  const history = (req.body && req.body.history) ? req.body.history : [];
+
+  // This check now uses 'userMessage' (which is req.body.prompt)
   if (!userMessage) return res.status(400).json({ text: "Missing 'message' in request body." });
 
   // Save incoming user message (if DB present)
@@ -435,8 +440,9 @@ app.post('/api/chat', authMiddleware, rateLimiter, async (req, res) => {
     if (personalityJSON.style) systemInstruction += ` Style: ${personalityJSON.style}.`;
   }
 
-  // Prepare conversation history (simple: last N messages from DB or in-memory)
-  // For simplicity, we provide only the user's single message to Gemini and the system instruction.
+  // *** FIX 3: Combine received history and current message into the final contents array ***
+  const contents = [...history, { role: 'user', parts: [{ text: userMessage }] }];
+
   try {
     if (!ai) {
       const fallbackText = "AI backend not configured (no GEMINI_API_KEY). Please set GEMINI_API_KEY in .env.";
@@ -446,8 +452,8 @@ app.post('/api/chat', authMiddleware, rateLimiter, async (req, res) => {
 
     const aiResp = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
-      // For simple usage we pass the user's message as contents
-      contents: userMessage,
+      // Pass the complete conversation history (contents)
+      contents: contents,
       config: {
         systemInstruction: systemInstruction
       }
