@@ -289,7 +289,7 @@ app.post('/api/tool/:toolType', authMiddleware, async (req, res) => {
 
     try {
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 300,
