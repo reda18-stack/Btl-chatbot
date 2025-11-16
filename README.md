@@ -205,10 +205,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues**: [GitHub Issues](https://github.com/yourusername/btl-ai/issues)
 - **Documentation**: Check the wiki for detailed guides
 
-## 🎉 Showcase
 
-### Live Demo
-[Coming Soon - Add your live demo link here]
 
 ### Screenshots
 | Dark Mode | Light Mode | Mobile View |
@@ -217,6 +214,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ by [Your Name]**
+**Built with ❤️ by Red4**
 
 ⭐ Star this repository if you find it helpful!
