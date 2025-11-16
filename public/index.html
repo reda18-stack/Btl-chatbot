@@ -417,23 +417,67 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
     
-    function loadChatHistory() {
-        const savedHistory = sessionStorage.getItem('chatHistory');
-        if (savedHistory) {
-            try {
-                const parsedHistory = JSON.parse(savedHistory);
-                chatHistory = parsedHistory; 
-                // Re-render old messages (passing false for isNewMessage)
-                parsedHistory.forEach(m => addMessage(m.text, m.role, false));
-                if (parsedHistory.length === 0) {
+    // UPDATED: Load chat history from server
+    async function loadChatHistory() {
+        const authToken = sessionStorage.getItem('authToken');
+        if (!authToken) {
+            addMessage(initialMessage, 'bot');
+            return;
+        }
+
+        try {
+            // Try to load from server first
+            const resp = await fetch(API_BASE + '/api/messages', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': `Bearer ${authToken}` 
+                }
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.messages && data.messages.length > 0) {
+                    // Clear current history and load from server
+                    chatHistory = [];
+                    chatContainer.innerHTML = '';
+                    
+                    data.messages.forEach(msg => {
+                        const role = msg.role === 'model' ? 'bot' : 'user';
+                        addMessage(msg.text, role, false);
+                    });
+                    return;
+                }
+            }
+            
+            // If no server messages, try session storage as fallback
+            const savedHistory = sessionStorage.getItem('chatHistory');
+            if (savedHistory) {
+                try {
+                    const parsedHistory = JSON.parse(savedHistory);
+                    chatHistory = parsedHistory;
+                    parsedHistory.forEach(m => addMessage(m.text, m.role, false));
+                } catch (e) {
+                    console.error("Failed to parse saved history:", e);
                     addMessage(initialMessage, 'bot');
                 }
-            } catch (e) {
-                console.error("Failed to parse saved history:", e);
+            } else {
                 addMessage(initialMessage, 'bot');
             }
-        } else {
-            addMessage(initialMessage, 'bot');
+        } catch (err) {
+            console.error('Failed to load message history:', err);
+            // Fallback to session storage
+            const savedHistory = sessionStorage.getItem('chatHistory');
+            if (savedHistory) {
+                try {
+                    const parsedHistory = JSON.parse(savedHistory);
+                    chatHistory = parsedHistory;
+                    parsedHistory.forEach(m => addMessage(m.text, m.role, false));
+                } catch (e) {
+                    addMessage(initialMessage, 'bot');
+                }
+            } else {
+                addMessage(initialMessage, 'bot');
+            }
         }
     }
 
@@ -456,11 +500,13 @@
         setState('thinking');
 
         try {
-            // Prepare history for API call
-            const historyToSend = chatHistory.slice(0, -1).map(m => ({
-                role: m.role === 'bot' ? 'model' : m.role,
-                parts: [{ text: m.text }]
-            }));
+            // Prepare history for API call - filter out system messages
+            const historyToSend = chatHistory
+                .filter(msg => msg.role !== 'system')
+                .map(m => ({
+                    role: m.role === 'bot' ? 'model' : m.role,
+                    parts: [{ text: m.text }]
+                }));
 
             const resp = await fetch(API_BASE + '/api/chat', {
                 method: 'POST',
