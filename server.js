@@ -30,6 +30,7 @@ if (!GEMINI_API_KEY) {
 // -------------------
 const useMongo = !!MONGO_URI;
 let inMemoryUsers = {}; // Fallback storage for users if MongoDB is disabled
+let inMemoryMessages = []; // Add this for message storage without MongoDB
 
 if (useMongo) {
     mongoose.connect(MONGO_URI)
@@ -145,11 +146,20 @@ function formatHistory(history) {
 
 // Function to store message in DB (conditional on useMongo)
 async function saveMessage(userId, role, text) {
-    if (!useMongo || !Message) return;
-    try {
-        await Message.create({ userId, role, text });
-    } catch (err) {
-        console.error('Failed to save message to MongoDB:', err.message);
+    if (useMongo && Message) {
+        try {
+            await Message.create({ userId, role, text });
+        } catch (err) {
+            console.error('Failed to save message to MongoDB:', err.message);
+        }
+    } else {
+        // In-memory storage
+        inMemoryMessages.push({
+            userId,
+            role,
+            text,
+            createdAt: new Date()
+        });
     }
 }
 
@@ -168,7 +178,10 @@ app.post('/api/auth/register', rateLimiter, async (req, res) => {
         // --- MONGODB REGISTRATION ---
         try {
             const user = await User.create({ email, username, password: hashedPassword });
-            const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
+            const token = jwt.sign({ 
+                id: user._id.toString(), // Ensure string format
+                email: user.email 
+            }, JWT_SECRET, { expiresIn: '24h' });
             return res.json({ message: 'Registration successful.', token });
         } catch (err) {
             if (err.code === 11000) return res.status(409).json({ error: 'User already exists.' });
@@ -186,7 +199,10 @@ app.post('/api/auth/register', rateLimiter, async (req, res) => {
             username,
             password: hashedPassword
         };
-        const token = jwt.sign({ id: pseudoId, email: email }, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign({ 
+            id: pseudoId, 
+            email: email 
+        }, JWT_SECRET, { expiresIn: '24h' });
         return res.json({ message: 'Registration successful (in-memory).', token });
     }
 });
@@ -216,7 +232,10 @@ app.post('/api/auth/login', rateLimiter, async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials.' });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ 
+        id: user._id.toString(), // Ensure consistent ID format
+        email: user.email 
+    }, JWT_SECRET, { expiresIn: '24h' });
     return res.json({ message: 'Login successful.', token });
 });
 
@@ -279,7 +298,7 @@ app.post('/api/tool/:toolType', authMiddleware, rateLimiter, async (req, res) =>
     const toolType = req.params.toolType;
 
     // Filter out non-content messages (like welcome messages)
-    const contentHistory = history.filter(m => m.role !== 'system' && m.text !== "Sorry The bot is under maintenance !!"); 
+    const contentHistory = history.filter(m => m.role !== 'system' && m.text !== "Welcome back! What can I help you with today?"); 
 
     if (contentHistory.length < 2) {
         return res.status(400).json({ error: 'Not enough conversation history to analyze.' });
@@ -335,6 +354,37 @@ app.post('/api/tool/:toolType', authMiddleware, rateLimiter, async (req, res) =>
     }
 });
 
+// ----------------
+// NEW: Get messages for current user
+// ----------------
+
+app.get('/api/messages', authMiddleware, rateLimiter, async (req, res) => {
+  const user = req.user;
+  const n = Math.min(100, Math.max(1, parseInt(req.query.n || '50', 10)));
+  
+  try {
+    let messages = [];
+    
+    if (useMongo && Message) {
+      // MongoDB: Get user's messages
+      messages = await Message.find({ userId: user.id })
+        .sort({ createdAt: 1 }) // Oldest first for proper conversation flow
+        .limit(n)
+        .lean();
+    } else {
+      // In-memory fallback: Filter messages by userId
+      messages = inMemoryMessages
+        .filter(msg => msg.userId === user.id)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .slice(-n);
+    }
+    
+    return res.json({ messages });
+  } catch (err) {
+    console.error('Get messages error:', err.message);
+    return res.status(500).json({ error: 'Failed to retrieve messages.' });
+  }
+});
 
 // ------------ Admin / utilities --------------
 
