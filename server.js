@@ -279,7 +279,7 @@ app.post('/api/tool/:toolType', authMiddleware, rateLimiter, async (req, res) =>
     const toolType = req.params.toolType;
 
     // Filter out non-content messages (like welcome messages)
-    const contentHistory = history.filter(m => m.role !== 'system' && m.text !== "Welcome back! What can I help you with today?"); 
+    const contentHistory = history.filter(m => m.role !== 'system' && m.text !== "Sorry The bot is under maintenance !!"); 
 
     if (contentHistory.length < 2) {
         return res.status(400).json({ error: 'Not enough conversation history to analyze.' });
