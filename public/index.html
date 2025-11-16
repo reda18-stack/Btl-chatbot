@@ -259,10 +259,13 @@
                 parts: [{ text: m.text }]
             }));
 
-            const resp = await fetch('/api/chat', {
+            const response = await fetch(window.location.origin + '/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: userMessage, history: historyToSend })
+                body: JSON.stringify({ 
+                    prompt: userMessage, 
+                    history: historyToSend
+                }) 
             });
 
             const data = await resp.json();
