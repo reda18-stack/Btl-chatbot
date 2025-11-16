@@ -1,4 +1,4 @@
-// server.js - Complete working version
+// server.js - Complete working version with fixed message roles
 require('dotenv').config();
 
 const express = require('express');
@@ -163,7 +163,7 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
         
         // Get AI response with better error handling
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 1000,
@@ -172,15 +172,13 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
             }
         });
 
-        const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        });
+        const result = await model.generateContent(prompt);
 
         console.log('✅ Gemini API response received');
         const responseText = result.response.text();
         console.log('🤖 AI Response:', responseText.substring(0, 100) + '...');
 
-        // Save AI response
+        // Save AI response as 'bot' role for consistent client-side display
         messages[user.id].push({ role: 'bot', text: responseText, timestamp: new Date() });
 
         res.json({ text: responseText });
@@ -203,8 +201,7 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
         } else if (err.message.includes('region') || err.message.includes('location')) {
             errorMessage = 'Service not available in your region.';
         } else if (err.message.includes('model') || err.message.includes('available')) {
-            errorMessage = 'AI model not available. Trying alternative...';
-            // You could try a different model here
+            errorMessage = 'AI model not available. Please try a different model.';
         }
 
         console.log('📢 User-facing error:', errorMessage);
@@ -212,10 +209,20 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
     }
 });
 
-// Get message history
+// Get message history - FIXED: Ensure consistent role format
 app.get('/api/messages', authMiddleware, (req, res) => {
     const user = req.user;
-    const userMessages = messages[user.id] || [];
+    let userMessages = messages[user.id] || [];
+    
+    // Ensure all messages have consistent roles for client display
+    userMessages = userMessages.map(msg => {
+        // Convert any 'model' roles to 'bot' for consistent client-side display
+        if (msg.role === 'model') {
+            return { ...msg, role: 'bot' };
+        }
+        return msg;
+    });
+    
     res.json({ messages: userMessages });
 });
 
