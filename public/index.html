@@ -317,8 +317,8 @@
     const inputForm = document.getElementById("input-form");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
-    const toolButton = document.getElementById("tool-button"); // New Tool button
-    const toolModal = document.getElementById("tool-modal"); // New Tool Modal
+    const toolButton = document.getElementById("tool-button");
+    const toolModal = document.getElementById("tool-modal");
     const eyeL = document.getElementById("eyeL");
     const eyeR = document.getElementById("eyeR");
 
@@ -390,7 +390,7 @@
         loadChatHistory();
     }
     
-    // --- CHAT LOGIC (Same as before, but with Auth token) ---
+    // --- CHAT LOGIC ---
 
     // Set visual state on eyes
     function setState(state) {
@@ -402,24 +402,42 @@
         }
     }
 
+    // FIXED: Proper message display with consistent roles
     function addMessage(text, sender, isNewMessage = true, isTool = false) {
         const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message', isTool ? 'tool-message' : (sender === 'user' ? 'user-message' : 'bot-message'));
+        
+        // Determine the correct CSS class based on sender
+        if (isTool) {
+            messageDiv.classList.add('message', 'tool-message');
+        } else if (sender === 'user') {
+            messageDiv.classList.add('message', 'user-message');
+        } else {
+            // This includes 'bot', 'model', 'assistant' - all should be bot messages
+            messageDiv.classList.add('message', 'bot-message');
+        }
+        
         messageDiv.textContent = text;
-
         chatContainer.appendChild(messageDiv);
         
+        // Only save to history if it's a new message and not a tool message
         if (isNewMessage && !isTool) {
-            chatHistory.push({ role: sender, text });
+            // Normalize the role for storage - always use 'user' or 'bot'
+            const normalizedRole = sender === 'user' ? 'user' : 'bot';
+            chatHistory.push({ role: normalizedRole, text });
             sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
         }
 
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
     
-    // UPDATED: Load chat history from server
+    // FIXED: Load chat history with proper role handling
     async function loadChatHistory() {
         const authToken = sessionStorage.getItem('authToken');
+        
+        // Clear current display
+        chatContainer.innerHTML = '';
+        chatHistory = [];
+
         if (!authToken) {
             addMessage(initialMessage, 'bot');
             return;
@@ -437,14 +455,28 @@
             if (resp.ok) {
                 const data = await resp.json();
                 if (data.messages && data.messages.length > 0) {
-                    // Clear current history and load from server
-                    chatHistory = [];
-                    chatContainer.innerHTML = '';
+                    console.log('📂 Loading messages from server:', data.messages.length);
                     
+                    // Load messages from server
                     data.messages.forEach(msg => {
-                        const role = msg.role === 'model' ? 'bot' : 'user';
-                        addMessage(msg.text, role, false);
+                        // Server sends consistent roles, but ensure display is correct
+                        const displayRole = msg.role === 'user' ? 'user' : 'bot';
+                        addMessage(msg.text, displayRole, false);
                     });
+                    
+                    // Update chatHistory with the loaded messages
+                    chatHistory = data.messages.map(msg => ({
+                        role: msg.role === 'user' ? 'user' : 'bot',
+                        text: msg.text
+                    }));
+                    
+                    // Save to session storage as backup
+                    sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                    
+                    // If no messages were loaded, add welcome message
+                    if (data.messages.length === 0) {
+                        addMessage(initialMessage, 'bot');
+                    }
                     return;
                 }
             }
@@ -454,13 +486,25 @@
             if (savedHistory) {
                 try {
                     const parsedHistory = JSON.parse(savedHistory);
+                    console.log('📂 Loading messages from session storage:', parsedHistory.length);
+                    
+                    parsedHistory.forEach(m => {
+                        const displayRole = m.role === 'user' ? 'user' : 'bot';
+                        addMessage(m.text, displayRole, false);
+                    });
+                    
                     chatHistory = parsedHistory;
-                    parsedHistory.forEach(m => addMessage(m.text, m.role, false));
+                    
+                    // If no messages in session storage, add welcome message
+                    if (parsedHistory.length === 0) {
+                        addMessage(initialMessage, 'bot');
+                    }
                 } catch (e) {
                     console.error("Failed to parse saved history:", e);
                     addMessage(initialMessage, 'bot');
                 }
             } else {
+                // No history found anywhere, add welcome message
                 addMessage(initialMessage, 'bot');
             }
         } catch (err) {
@@ -470,8 +514,11 @@
             if (savedHistory) {
                 try {
                     const parsedHistory = JSON.parse(savedHistory);
+                    parsedHistory.forEach(m => {
+                        const displayRole = m.role === 'user' ? 'user' : 'bot';
+                        addMessage(m.text, displayRole, false);
+                    });
                     chatHistory = parsedHistory;
-                    parsedHistory.forEach(m => addMessage(m.text, m.role, false));
                 } catch (e) {
                     addMessage(initialMessage, 'bot');
                 }
@@ -500,11 +547,11 @@
         setState('thinking');
 
         try {
-            // Prepare history for API call - filter out system messages
+            // Prepare history for API call
             const historyToSend = chatHistory
                 .filter(msg => msg.role !== 'system')
                 .map(m => ({
-                    role: m.role === 'bot' ? 'model' : m.role,
+                    role: m.role === 'bot' ? 'model' : 'user',
                     parts: [{ text: m.text }]
                 }));
 
@@ -523,33 +570,30 @@
                 setState('reply');
                 await new Promise(r => setTimeout(r, 420));
                 setState('talking');
-                addMessage(data.text, 'bot');
+                addMessage(data.text, 'bot'); // Always use 'bot' for AI responses
             } else if (resp.status === 401) {
                 showAuthMessage("Your session expired. Please log in.", true);
                 sessionStorage.removeItem('chatHistory');
                 showAuthView();
             } else {
-                chatHistory.pop();
-                sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-                addMessage("Server error: " + (data?.error || "Unknown error"), 'bot');
+                const errorMsg = data?.text || data?.error || "The AI service is currently unavailable.";
+                addMessage("Error: " + errorMsg, 'bot');
             }
         } catch (err) {
             console.error('Chat error:', err);
-            chatHistory.pop();
-            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-            addMessage("Error: Couldn't reach the server. Check your network or server status.", 'bot');
+            addMessage("Network Error: Could not connect to the server.", 'bot');
         } finally {
             setChatEnabled(true);
             setTimeout(() => setState(''), 800);
         }
     }
 
-    // --- NEW GEMINI TOOL LOGIC ---
+    // --- GEMINI TOOL LOGIC ---
 
     async function handleGeminiTool(toolType) {
         toolModal.style.display = 'none';
 
-        if (chatHistory.length <= 1) { // Only the initial welcome message
+        if (chatHistory.length <= 1) {
             addMessage("Conversation history is too short. Try chatting a bit first!", 'bot', true, true);
             return;
         }
@@ -572,7 +616,6 @@
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authToken}` 
                 },
-                // Send the full current chat history for analysis
                 body: JSON.stringify({ history: chatHistory })
             });
 
@@ -598,7 +641,6 @@
             setTimeout(() => setState(''), 800);
         }
     }
-
 
     // --- AUTHENTICATION LOGIC ---
 
@@ -669,7 +711,7 @@
         toolButton.addEventListener('click', () => { 
             if (toolButton.disabled) return;
             toolModal.style.display = 'flex'; 
-        }); // Show tool modal
+        });
         menuIcon.addEventListener('click', () => navMenu.classList.toggle('active'));
         logoutButton.addEventListener('click', () => { 
             sessionStorage.removeItem('authToken'); 
@@ -679,7 +721,7 @@
         });
 
         // Simple alerts for nav links
-        aboutLink.addEventListener('click', e => { e.preventDefault(); alert("Nyx — a simple AI chatbot."); navMenu.classList.remove('active'); });
+        aboutLink.addEventListener('click', e => { e.preventDefault(); alert("Btl — a simple AI chatbot."); navMenu.classList.remove('active'); });
         contactLink.addEventListener('click', e => { e.preventDefault(); alert("No contact info yet."); navMenu.classList.remove('active'); });
 
         // --- Initial Auth Check ---
@@ -693,8 +735,7 @@
         initializeEyeTracking();
     }
 
-
-    // --- EYE TRACKING LOGIC (Kept for visual flair) ---
+    // --- EYE TRACKING LOGIC ---
     function initializeEyeTracking() {
         const MAX_DIST = 14;
 
@@ -732,6 +773,5 @@
 
     initializeApp();
 </script>
-
 </body>
 </html>
