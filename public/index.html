@@ -31,18 +31,57 @@
         -webkit-backdrop-filter: blur(8px);
         border-radius: 14px;
     }
-
-    /* --- EYES ROW --- */
-    #eyes {
+    
+    /* --- MODAL --- */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+    }
+    .modal-content {
+        background: #111111;
+        padding: 1.5rem;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+    .tool-button {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        background: rgba(147,51,234, 0.1);
+        border: 1px solid rgba(147,51,234, 0.5);
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        transition: background 0.2s, transform 0.1s;
+    }
+    .tool-button:hover { background: rgba(147,51,234, 0.25); }
+    .tool-button:active { transform: scale(0.99); }
+
+
+    /* --- EYES ROW (Chat Only) --- */
+    #eyes {
+        display: none; /* Hidden by default, shown when chat-view is active */
         gap: 2.5rem;
         margin-bottom: 1.75rem;
         align-items: center;
         justify-content: center;
-        pointer-events: none; /* don't block clicks */
+        pointer-events: none;
     }
 
-    /* The purple squares (the "eyes") */
     .eye {
         width: 140px;
         height: 110px;
@@ -52,8 +91,6 @@
         position: relative;
         transition: transform 0.08s linear, filter 0.18s ease, height 0.18s ease;
         will-change: transform;
-        display: inline-block;
-        /* center content if needed later */
         display: flex;
         align-items: center;
         justify-content: center;
@@ -62,22 +99,18 @@
     /* states */
     .thinking { animation: pulse 0.9s infinite ease-in-out; }
     .reply { height: 70px; border-radius: 40px; filter: brightness(1.7); }
-    .bouncing { animation: bounce 0.45s infinite alternate ease-in-out; }
     .talking { animation: bounce-chat 0.45s infinite alternate ease-in-out; }
 
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(0.9); }
-        100% { transform: scale(1); }
-    }
-    @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(0.9); } 100% { transform: scale(1); } }
     @keyframes bounce-chat { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
 
     /* --- CHAT UI --- */
+    #chat-view { display: none; /* Hidden by default */ }
     #chat-container {
         max-height: 60vh;
         overflow-y: auto;
         width: 420px;
+        padding-top: 1rem; /* Added padding to top */
     }
 
     #chat-container::-webkit-scrollbar { width: 6px; }
@@ -91,6 +124,7 @@
         max-width: 80%;
         line-height: 1.4;
         word-wrap: break-word;
+        white-space: pre-wrap; /* Preserve formatting for lists/summaries */
     }
     .user-message {
         background: var(--purple);
@@ -105,9 +139,58 @@
         margin-right: auto;
         border-bottom-left-radius: 0;
     }
+    .tool-message {
+        background: #333;
+        color: #ddd;
+        font-style: italic;
+        text-align: center;
+        margin: 0.75rem auto;
+        max-width: 95%;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
 
-    /* header/nav */
-    #header { position: fixed; top: 1rem; right: 1rem; z-index: 1000; }
+    /* --- AUTH UI --- */
+    #login-view {
+        width: 100%;
+        max-width: 380px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .auth-card {
+        padding: 2.5rem;
+        width: 100%;
+    }
+    .input-field {
+        width: 100%;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(147,51,234,0.3);
+        border-radius: 8px;
+        background: rgba(0,0,0,0.3);
+        color: white;
+        transition: border-color 0.2s;
+    }
+    .input-field:focus {
+        border-color: var(--purple-2);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(147,51,234,0.5);
+    }
+    .auth-button {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--purple);
+        color: white;
+        font-weight: bold;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+    .auth-button:hover { background: var(--purple-2); }
+    .auth-button:disabled { background: #5a5a5a; cursor: not-allowed; }
+
+    /* Nav */
+    #header { position: fixed; top: 1rem; right: 1rem; z-index: 1000; display: none; } /* Hidden until logged in */
     #nav-menu {
         position: fixed;
         top: 0;
@@ -122,18 +205,38 @@
         padding: 2rem;
     }
     #nav-menu.active { transform: translateX(0); }
-    .hidden { display: none !important; }
-
-    /* small responsive */
-    @media (max-width: 480px) {
-        .eye { width: 100px; height: 80px; }
-        #chat-container, form#input-form { width: 92vw; max-width: 420px; }
-    }
 </style>
 </head>
 
 <body>
 
+    <!-- --- MODAL FOR GEMINI TOOLS --- -->
+    <div id="tool-modal" class="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold mb-4 text-center" style="color:var(--purple-2);">✨ AI Tools ✨</h3>
+            <p class="text-sm text-gray-400 mb-4 text-center">Analyze your current conversation:</p>
+
+            <button class="tool-button" onclick="handleGeminiTool('summarize')">
+                <span>Summarize Conversation</span>
+                <span class="text-lg text-yellow-300">📝</span>
+            </button>
+            <button class="tool-button" onclick="handleGeminiTool('suggest')">
+                <span>Suggest Next Steps</span>
+                <span class="text-lg text-cyan-300">💡</span>
+            </button>
+            <button class="tool-button" onclick="handleGeminiTool('tasks')">
+                <span>Generate a Task List</span>
+                <span class="text-lg text-green-300">✅</span>
+            </button>
+            
+            <button class="auth-button mt-4 bg-gray-700 hover:bg-gray-600" onclick="document.getElementById('tool-modal').style.display = 'none'">
+                Close
+            </button>
+        </div>
+    </div>
+
+
+    <!-- NAV/HEADER (Only visible when logged in) -->
     <div id="header" class="p-4">
         <div id="menu-icon" class="text-3xl cursor-pointer" style="color:var(--purple);">☰</div>
     </div>
@@ -141,46 +244,153 @@
     <div id="nav-menu" class="">
         <a href="#" id="about-link" class="block py-4 text-white hover:text-var(--purple)">About Nyx</a>
         <a href="#" id="contact-link" class="block py-4 text-white hover:text-var(--purple)">Contact Info</a>
-        <button id="logout-button" class="block py-4 text-var(--purple) font-bold w-full text-left mt-4">Logout (Not Functional)</button>
+        <button id="logout-button" class="block py-4 text-var(--purple) font-bold w-full text-left mt-4">Logout</button>
     </div>
 
-    <div id="eyes" class="mb-4">
-        <div id="eyeL" class="eye" aria-hidden="true"></div>
-        <div id="eyeR" class="eye" aria-hidden="true"></div>
+
+    <!-- --- 1. AUTHENTICATION VIEW --- -->
+    <div id="login-view">
+        <h1 class="text-4xl font-extrabold mb-8 text-center" style="color:var(--purple-2);">Nyx AI</h1>
+        
+        <div class="auth-card glass-container">
+
+            <!-- Shared Error/Message Display -->
+            <div id="auth-message" class="mb-4 p-3 bg-red-800/50 text-red-300 rounded-lg text-sm hidden"></div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <h2 class="text-2xl font-semibold mb-6 text-white text-center">Login</h2>
+                <input type="email" id="login-email" class="input-field" placeholder="Email" required>
+                <input type="password" id="login-password" class="input-field" placeholder="Password" required>
+                <button type="submit" id="login-button" class="auth-button">Sign In</button>
+                <p class="mt-4 text-center text-sm text-gray-400">
+                    Need an account? <a href="#" id="show-register" class="text-var(--purple) hover:text-var(--purple-2) font-medium">Register</a>
+                </p>
+            </form>
+
+            <!-- Register Form (Initially Hidden) -->
+            <form id="register-form" class="auth-form hidden">
+                <h2 class="text-2xl font-semibold mb-6 text-white text-center">Register</h2>
+                <input type="email" id="register-email" class="input-field" placeholder="Email" required>
+                <input type="password" id="register-password" class="input-field" placeholder="Password" required>
+                <input type="password" id="register-confirm-password" class="input-field" placeholder="Confirm Password" required>
+                <button type="submit" id="register-button" class="auth-button">Create Account</button>
+                <p class="mt-4 text-center text-sm text-gray-400">
+                    Already have an account? <a href="#" id="show-login" class="text-var(--purple) hover:text-var(--purple-2) font-medium">Login</a>
+                </p>
+            </form>
+
+        </div>
     </div>
 
+
+    <!-- --- 2. CHAT VIEW (Initially Hidden) --- -->
     <div id="chat-view" class="flex flex-col items-center gap-4">
-        <div id="chat-container" class="glass-container p-4 rounded-xl">
+        <!-- Eyes row: the two purple squares -->
+        <div id="eyes" class="mb-4">
+            <div id="eyeL" class="eye" aria-hidden="true"></div>
+            <div id="eyeR" class="eye" aria-hidden="true"></div>
+        </div>
+
+        <div id="chat-content" class="flex flex-col items-center gap-4">
+            <div id="chat-container" class="glass-container p-4 rounded-xl">
+                <!-- messages go here -->
             </div>
 
-        <form id="input-form" class="flex w-[420px]">
-            <input type="text" id="user-input" placeholder="Type your message..." required
-                class="flex-grow p-3 border border-r-0 border-purple-500 rounded-l-lg bg-gray-900 text-white text-base focus:ring-2 focus:ring-purple-400 focus:outline-none">
-            <button type="submit" id="send-button" class="px-5 py-3 bg-[#9333ea] text-white font-bold rounded-r-lg hover:bg-[#a855f7] transition-all duration-300 transform active:scale-95">
-                Send
-            </button>
-        </form>
+            <form id="input-form" class="flex w-[420px] max-w-full">
+                <button type="button" id="tool-button" class="px-3 py-3 mr-2 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-600 transition-all duration-300 transform active:scale-95 text-xl" title="AI Tools">
+                    ✨
+                </button>
+                <input type="text" id="user-input" placeholder="Type your message..." required
+                    class="flex-grow p-3 border border-r-0 border-purple-500 rounded-l-lg bg-gray-900 text-white text-base focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                <button type="submit" id="send-button" class="px-5 py-3 bg-[#9333ea] text-white font-bold rounded-r-lg hover:bg-[#a855f7] transition-all duration-300 transform active:scale-95">
+                    Send
+                </button>
+            </form>
+        </div>
     </div>
 
 <script>
     // --- Safe DOM references ---
     const chatView = document.getElementById("chat-view");
-    const eyeL = document.getElementById("eyeL");
-    const eyeR = document.getElementById("eyeR");
     const chatContainer = document.getElementById("chat-container");
     const inputForm = document.getElementById("input-form");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
+    const toolButton = document.getElementById("tool-button"); // New Tool button
+    const toolModal = document.getElementById("tool-modal"); // New Tool Modal
+    const eyeL = document.getElementById("eyeL");
+    const eyeR = document.getElementById("eyeR");
 
     const header = document.getElementById("header");
-    const menuIcon = document.getElementById("menu-icon");
     const navMenu = document.getElementById("nav-menu");
+    const menuIcon = document.getElementById("menu-icon");
     const logoutButton = document.getElementById("logout-button");
     const aboutLink = document.getElementById("about-link");
     const contactLink = document.getElementById("contact-link");
 
+    const loginView = document.getElementById("login-view");
+    const loginForm = document.getElementById("login-form");
+    const registerForm = document.getElementById("register-form");
+    const authMessage = document.getElementById("auth-message");
+    const showRegisterLink = document.getElementById("show-register");
+    const showLoginLink = document.getElementById("show-login");
+
     let chatHistory = [];
-    const initialMessage = "Welcome to Nyx! How can I help you today?";
+    const initialMessage = "Welcome back! What can I help you with today?";
+    const API_BASE = ''; 
+
+    // --- UTILITIES ---
+
+    function showAuthMessage(message, isError = true) {
+        authMessage.textContent = message;
+        authMessage.classList.remove('hidden', 'bg-red-800/50', 'bg-green-800/50');
+        authMessage.classList.add(isError ? 'bg-red-800/50' : 'bg-green-800/50');
+        setTimeout(() => authMessage.classList.add('hidden'), 5000);
+    }
+    
+    function setAuthButtonsDisabled(disabled) {
+        document.getElementById("login-button").disabled = disabled;
+        document.getElementById("register-button").disabled = disabled;
+    }
+
+    function setChatEnabled(enabled) {
+        sendButton.disabled = !enabled;
+        toolButton.disabled = !enabled;
+        userInput.disabled = !enabled;
+    }
+
+    function closeModal(event) {
+        if (event.target === toolModal) {
+            toolModal.style.display = 'none';
+        }
+    }
+
+    // --- VIEW MANAGEMENT ---
+
+    function showAuthView() {
+        sessionStorage.removeItem('authToken');
+        header.style.display = 'none';
+        chatView.style.display = 'none';
+        document.getElementById("eyes").style.display = 'none';
+        loginView.style.display = 'flex';
+
+        loginForm.reset();
+        registerForm.reset();
+        chatHistory = [];
+        chatContainer.innerHTML = '';
+    }
+
+    function showChatView() {
+        header.style.display = 'block';
+        loginView.style.display = 'none';
+        chatView.style.display = 'flex';
+        document.getElementById("eyes").style.display = 'flex';
+
+        loadChatHistory();
+    }
+    
+    // --- CHAT LOGIC (Same as before, but with Auth token) ---
 
     // Set visual state on eyes
     function setState(state) {
@@ -192,11 +402,259 @@
         }
     }
 
-    // Eye tracking
+    function addMessage(text, sender, isNewMessage = true, isTool = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', isTool ? 'tool-message' : (sender === 'user' ? 'user-message' : 'bot-message'));
+        messageDiv.textContent = text;
+
+        chatContainer.appendChild(messageDiv);
+        
+        if (isNewMessage && !isTool) {
+            chatHistory.push({ role: sender, text });
+            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    function loadChatHistory() {
+        const savedHistory = sessionStorage.getItem('chatHistory');
+        if (savedHistory) {
+            try {
+                const parsedHistory = JSON.parse(savedHistory);
+                chatHistory = parsedHistory; 
+                // Re-render old messages (passing false for isNewMessage)
+                parsedHistory.forEach(m => addMessage(m.text, m.role, false));
+                if (parsedHistory.length === 0) {
+                    addMessage(initialMessage, 'bot');
+                }
+            } catch (e) {
+                console.error("Failed to parse saved history:", e);
+                addMessage(initialMessage, 'bot');
+            }
+        } else {
+            addMessage(initialMessage, 'bot');
+        }
+    }
+
+    async function handleChat(event) {
+        event.preventDefault();
+        const userMessage = userInput.value.trim();
+        if (!userMessage) return;
+
+        addMessage(userMessage, 'user');
+        userInput.value = '';
+        setChatEnabled(false);
+
+        const authToken = sessionStorage.getItem('authToken');
+        if (!authToken) {
+            showAuthMessage("Session expired. Please log in again.", true);
+            showAuthView();
+            return;
+        }
+
+        setState('thinking');
+
+        try {
+            // Prepare history for API call
+            const historyToSend = chatHistory.slice(0, -1).map(m => ({
+                role: m.role === 'bot' ? 'model' : m.role,
+                parts: [{ text: m.text }]
+            }));
+
+            const resp = await fetch(API_BASE + '/api/chat', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}` 
+                },
+                body: JSON.stringify({ prompt: userMessage, history: historyToSend })
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok && data?.text) {
+                setState('reply');
+                await new Promise(r => setTimeout(r, 420));
+                setState('talking');
+                addMessage(data.text, 'bot');
+            } else if (resp.status === 401) {
+                showAuthMessage("Your session expired. Please log in.", true);
+                sessionStorage.removeItem('chatHistory');
+                showAuthView();
+            } else {
+                chatHistory.pop();
+                sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                addMessage("Server error: " + (data?.error || "Unknown error"), 'bot');
+            }
+        } catch (err) {
+            console.error('Chat error:', err);
+            chatHistory.pop();
+            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+            addMessage("Error: Couldn't reach the server. Check your network or server status.", 'bot');
+        } finally {
+            setChatEnabled(true);
+            setTimeout(() => setState(''), 800);
+        }
+    }
+
+    // --- NEW GEMINI TOOL LOGIC ---
+
+    async function handleGeminiTool(toolType) {
+        toolModal.style.display = 'none';
+
+        if (chatHistory.length <= 1) { // Only the initial welcome message
+            addMessage("Conversation history is too short. Try chatting a bit first!", 'bot', true, true);
+            return;
+        }
+
+        const authToken = sessionStorage.getItem('authToken');
+        if (!authToken) {
+            showAuthMessage("Session expired. Please log in again.", true);
+            showAuthView();
+            return;
+        }
+
+        addMessage(`Running AI Tool: ${toolType.charAt(0).toUpperCase() + toolType.slice(1)}...`, 'system', false, true);
+        setChatEnabled(false);
+        setState('thinking');
+
+        try {
+            const resp = await fetch(API_BASE + `/api/tool/${toolType}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}` 
+                },
+                // Send the full current chat history for analysis
+                body: JSON.stringify({ history: chatHistory })
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok && data?.text) {
+                setState('reply');
+                await new Promise(r => setTimeout(r, 420));
+                setState('talking');
+                addMessage(data.text, 'bot');
+            } else if (resp.status === 401) {
+                showAuthMessage("Your session expired. Please log in.", true);
+                sessionStorage.removeItem('chatHistory');
+                showAuthView();
+            } else {
+                addMessage(`Tool Error: ${data.message || data.error || 'Failed to process AI tool request.'}`, 'system', false, true);
+            }
+        } catch (err) {
+            console.error('Tool error:', err);
+            addMessage("Network Error: Could not connect to the tool server.", 'system', false, true);
+        } finally {
+            setChatEnabled(true);
+            setTimeout(() => setState(''), 800);
+        }
+    }
+
+
+    // --- AUTHENTICATION LOGIC ---
+
+    async function handleAuth(event, endpoint) {
+        event.preventDefault();
+        setAuthButtonsDisabled(true);
+        authMessage.classList.add('hidden');
+
+        const formId = endpoint === 'login' ? 'login-' : 'register-';
+        const email = document.getElementById(formId + 'email').value;
+        const password = document.getElementById(formId + 'password').value;
+        const confirmPassword = endpoint === 'register' ? document.getElementById('register-confirm-password').value : null;
+
+        if (endpoint === 'register' && password !== confirmPassword) {
+            showAuthMessage("Passwords do not match.", true);
+            setAuthButtonsDisabled(false);
+            return;
+        }
+
+        try {
+            const payload = { email, password };
+            if (endpoint === 'register') payload.username = email;
+
+            const resp = await fetch(API_BASE + `/api/auth/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok && data.token) {
+                sessionStorage.setItem('authToken', data.token);
+                sessionStorage.removeItem('chatHistory'); 
+                showChatView();
+            } else {
+                showAuthMessage(data.message || `Authentication failed: ${data.error || 'Unknown error'}`, true);
+            }
+        } catch (err) {
+            showAuthMessage("Network error. Could not connect to the authentication server.", true);
+            console.error(err);
+        } finally {
+            setAuthButtonsDisabled(false);
+        }
+    }
+
+    // --- INITIALIZATION ---
+
+    function initializeApp() {
+        // --- Form Submission Handlers ---
+        loginForm.addEventListener('submit', (e) => handleAuth(e, 'login'));
+        registerForm.addEventListener('submit', (e) => handleAuth(e, 'register'));
+
+        // --- Auth View Toggles ---
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+        });
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        });
+
+        // --- Chat & Nav Handlers ---
+        inputForm.addEventListener('submit', handleChat);
+        toolButton.addEventListener('click', () => { 
+            if (toolButton.disabled) return;
+            toolModal.style.display = 'flex'; 
+        }); // Show tool modal
+        menuIcon.addEventListener('click', () => navMenu.classList.toggle('active'));
+        logoutButton.addEventListener('click', () => { 
+            sessionStorage.removeItem('authToken'); 
+            sessionStorage.removeItem('chatHistory'); 
+            navMenu.classList.remove('active');
+            showAuthView(); 
+        });
+
+        // Simple alerts for nav links
+        aboutLink.addEventListener('click', e => { e.preventDefault(); alert("Nyx — a simple AI chatbot."); navMenu.classList.remove('active'); });
+        contactLink.addEventListener('click', e => { e.preventDefault(); alert("No contact info yet."); navMenu.classList.remove('active'); });
+
+        // --- Initial Auth Check ---
+        const token = sessionStorage.getItem('authToken');
+        if (token) {
+            showChatView();
+        } else {
+            showAuthView();
+        }
+
+        initializeEyeTracking();
+    }
+
+
+    // --- EYE TRACKING LOGIC (Kept for visual flair) ---
     function initializeEyeTracking() {
         const MAX_DIST = 14;
 
         function onMove(clientX, clientY) {
+            if (chatView.style.display !== 'flex') return;
+
             [eyeL, eyeR].forEach(eye => {
                 const rect = eye.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
@@ -226,115 +684,8 @@
         });
     }
 
-    // Add message (TEXT ONLY NOW)
-    // ADDED isNewMessage parameter for persistence
-    function addMessage(text, sender, isNewMessage = true) {
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
-        messageDiv.textContent = text;
-
-        chatContainer.appendChild(messageDiv);
-        
-        if (isNewMessage) {
-            chatHistory.push({ role: sender, text });
-            // *** NEW LINE: Save history to sessionStorage ***
-            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-        }
-
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    // Handle chat
-    async function handleChat(event) {
-        event.preventDefault();
-        const userMessage = userInput.value.trim();
-        if (!userMessage) return;
-
-        addMessage(userMessage, 'user'); // isNewMessage is true by default
-        userInput.value = '';
-        sendButton.disabled = true;
-
-        setState('thinking');
-
-        let botResponse = "Error: Couldn't reach the server. Make sure /api/chat is running.";
-
-        try {
-            // chatHistory already contains the latest user message
-            const historyToSend = chatHistory.slice(0, -1).map(m => ({
-                role: m.role === 'bot' ? 'model' : m.role,
-                parts: [{ text: m.text }]
-            }));
-
-            const resp = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: userMessage, history: historyToSend })
-            });
-
-            const data = await resp.json();
-
-            if (resp.ok && data?.text) {
-                botResponse = data.text;
-                setState('reply');
-                await new Promise(r => setTimeout(r, 420));
-                setState('talking');
-                addMessage(botResponse, 'bot');
-            } else {
-                // Remove the last user message from history if the API failed
-                chatHistory.pop();
-                sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-                addMessage("Server error: " + (data?.error || "Unknown error"), 'bot');
-            }
-        } catch (err) {
-            // Remove the last user message from history if the fetch failed
-            chatHistory.pop();
-            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-            addMessage(botResponse, 'bot');
-        } finally {
-            sendButton.disabled = false;
-            setTimeout(() => setState(''), 800);
-        }
-    }
-
-    // Nav
-    function toggleMenu() { navMenu.classList.toggle('active'); }
-    function handleLogout() { alert("Logout disabled in this build."); toggleMenu(); }
-    function handleAbout() { alert("Nyx — a simple AI chatbot."); toggleMenu(); }
-    function handleContact() { alert("No contact info yet."); toggleMenu(); }
-
-    // Init
-    function initializeChat() {
-        inputForm.addEventListener('submit', handleChat);
-        menuIcon.addEventListener('click', toggleMenu);
-        logoutButton.addEventListener('click', handleLogout);
-        aboutLink.addEventListener('click', e => { e.preventDefault(); handleAbout(); });
-        contactLink.addEventListener('click', e => { e.preventDefault(); handleContact(); });
-
-        // --- NEW: Load history from sessionStorage ---
-        const savedHistory = sessionStorage.getItem('chatHistory');
-        if (savedHistory) {
-            try {
-                const parsedHistory = JSON.parse(savedHistory);
-                chatHistory = parsedHistory; // Restore array
-                
-                // Re-render old messages (passing false for isNewMessage)
-                parsedHistory.forEach(m => addMessage(m.text, m.role, false));
-            } catch (e) {
-                console.error("Failed to parse saved history:", e);
-                // Fallback to initial message if parsing fails
-                addMessage(initialMessage, 'bot');
-            }
-        } else {
-            // First load: Show welcome message
-            addMessage(initialMessage, 'bot');
-        }
-        // --- END NEW: Load history from sessionStorage ---
-    }
-
-    initializeChat();
-    initializeEyeTracking();
+    initializeApp();
 </script>
-
 
 </body>
 </html>
