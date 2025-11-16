@@ -752,6 +752,163 @@
     const initialMessage = "Welcome back! What can I help you with today?";
     const API_BASE = '';
 
+    // --- PWA INSTALLATION FEATURES ---
+    let deferredPrompt;
+    const installButton = document.createElement('button');
+
+    // Create install button
+    function createInstallButton() {
+        installButton.innerHTML = '📱 Install Btl AI';
+        installButton.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--purple), var(--purple-2));
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(147,51,234,0.3);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        `;
+        installButton.addEventListener('mouseenter', () => {
+            installButton.style.transform = 'translateY(-2px)';
+            installButton.style.boxShadow = '0 6px 20px rgba(147,51,234,0.4)';
+        });
+        installButton.addEventListener('mouseleave', () => {
+            installButton.style.transform = 'translateY(0)';
+            installButton.style.boxShadow = '0 4px 15px rgba(147,51,234,0.3)';
+        });
+        installButton.addEventListener('click', installPWA);
+        document.body.appendChild(installButton);
+        installButton.style.display = 'none';
+    }
+
+    // Handle before install prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 PWA install prompt available');
+        e.preventDefault();
+        deferredPrompt = e;
+        installButton.style.display = 'block';
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            if (installButton.style.display !== 'none') {
+                installButton.style.display = 'none';
+            }
+        }, 10000);
+    });
+
+    // Install PWA function
+    async function installPWA() {
+        if (!deferredPrompt) return;
+        
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+            console.log('✅ User accepted PWA installation');
+            installButton.style.display = 'none';
+        } else {
+            console.log('❌ User dismissed PWA installation');
+        }
+        
+        deferredPrompt = null;
+    }
+
+    // Check if app is already installed
+    window.addEventListener('appinstalled', () => {
+        console.log('🎉 Btl AI was successfully installed');
+        installButton.style.display = 'none';
+        deferredPrompt = null;
+        
+        // Show welcome message for installed app
+        if (chatHistory.length === 0) {
+            setTimeout(() => {
+                addMessage("Hey! Thanks for installing Btl AI! 🎉 Now I'm always just a tap away on your home screen. How can I help you today?", 'bot');
+            }, 1000);
+        }
+    });
+
+    // Detect if running as PWA
+    function isRunningAsPWA() {
+        return window.matchMedia('(display-mode: standalone)').matches || 
+               window.navigator.standalone ||
+               document.referrer.includes('android-app://');
+    }
+
+    // Enhanced offline detection
+    function checkOnlineStatus() {
+        if (!navigator.onLine) {
+            addMessage("📡 Looks like you're offline! I'll try to reconnect when you're back online.", 'bot');
+        }
+    }
+
+    // Network status listeners
+    window.addEventListener('online', () => {
+        console.log('✅ Back online');
+        addMessage("✅ I'm back online! Ready to chat! 😊", 'bot');
+    });
+
+    window.addEventListener('offline', () => {
+        console.log('❌ Went offline');
+        addMessage("📡 I'm having trouble connecting. Check your internet connection.", 'bot');
+    });
+
+    // Initialize PWA features
+    function initializePWA() {
+        createInstallButton();
+        checkOnlineStatus();
+        
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registered:', registration);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        // If running as PWA, enhance the experience
+        if (isRunningAsPWA()) {
+            console.log('📱 Running as installed PWA');
+            document.title = "Btl AI";
+            
+            // Add PWA-specific styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @media (display-mode: standalone) {
+                    body {
+                        padding-top: env(safe-area-inset-top);
+                        padding-bottom: env(safe-area-inset-bottom);
+                        padding-left: env(safe-area-inset-left);
+                        padding-right: env(safe-area-inset-right);
+                    }
+                    
+                    #header {
+                        top: calc(1.5rem + env(safe-area-inset-top));
+                    }
+                }
+                
+                /* Mobile app-like scroll */
+                #chat-container {
+                    -webkit-overflow-scrolling: touch;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
     // --- THEME MANAGEMENT ---
     function initTheme() {
         const savedTheme = localStorage.getItem('btl-theme') || 'dark';
@@ -1199,12 +1356,49 @@
         }
     }
 
+    // --- EYE TRACKING LOGIC ---
+    function initializeEyeTracking() {
+        const MAX_DIST = 14;
+
+        function onMove(clientX, clientY) {
+            if (chatView.style.display !== 'flex') return;
+
+            [eyeL, eyeR].forEach(eye => {
+                const rect = eye.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+
+                const dx = clientX - cx;
+                const dy = clientY - cy;
+
+                const angle = Math.atan2(dy, dx);
+                const dist = Math.min(MAX_DIST, Math.hypot(dx, dy) * 0.06);
+
+                const x = Math.cos(angle) * dist;
+                const y = Math.sin(angle) * dist;
+
+                eye.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
+        });
+
+        document.addEventListener('mouseleave', () => {
+            eyeL.style.transform = '';
+            eyeR.style.transform = '';
+        });
+    }
+
     // --- INITIALIZATION ---
     function initializeApp() {
-        // Initialize theme
-        initTheme();
+        // Initialize PWA features first
+        initializePWA();
         
-        // Initialize particles
+        // Then initialize your existing app features
+        initTheme();
         initParticles();
 
         // Theme toggle event
@@ -1269,42 +1463,7 @@
         initializeEyeTracking();
     }
 
-    // --- EYE TRACKING LOGIC ---
-    function initializeEyeTracking() {
-        const MAX_DIST = 14;
-
-        function onMove(clientX, clientY) {
-            if (chatView.style.display !== 'flex') return;
-
-            [eyeL, eyeR].forEach(eye => {
-                const rect = eye.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-
-                const dx = clientX - cx;
-                const dy = clientY - cy;
-
-                const angle = Math.atan2(dy, dx);
-                const dist = Math.min(MAX_DIST, Math.hypot(dx, dy) * 0.06);
-
-                const x = Math.cos(angle) * dist;
-                const y = Math.sin(angle) * dist;
-
-                eye.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-            });
-        }
-
-        document.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
-        document.addEventListener('touchmove', (e) => {
-            if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
-        });
-
-        document.addEventListener('mouseleave', () => {
-            eyeL.style.transform = '';
-            eyeR.style.transform = '';
-        });
-    }
-
+    // Start the app
     initializeApp();
 </script>
 </body>
