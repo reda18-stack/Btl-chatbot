@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,156 +8,200 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-    /* --- BASE --- */
-    :root { --purple: #9333ea; --purple-2: #a855f7; --dark: #0c001f; }
-    html,body { height: 100%; margin: 0; }
+    /* --- CUSTOM BACKGROUND AND BASE --- */
     body {
-        background: linear-gradient(135deg, #1f013d 0%, var(--dark) 100%);
+        /* Vibrant background gradient */
+        background: linear-gradient(135deg, #1f013d 0%, #0c001f 100%);
+        height: 100vh;
+        margin: 0;
         display: flex;
-        align-items: center;
+        flex-direction: column;
         justify-content: center;
-        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        align-items: center;
+        font-family: 'Inter', sans-serif;
         color: #fff;
-        transition: all 0.4s ease;
-        padding: 2rem;
+        transition: all 0.5s ease;
     }
 
-    /* --- GLASS --- */
+    /* --- Glassmorphism Effect for Containers --- */
     .glass-container {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.06);
-        box-shadow: 0 6px 30px rgba(0,0,0,0.35);
-        backdrop-filter: blur(8px);
+        /* Base glass effect */
+        background: rgba(255, 255, 255, 0.05); /* Slightly transparent white */
+        border: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); /* Soft shadow */
+        backdrop-filter: blur(8px); /* The magic blur effect */
         -webkit-backdrop-filter: blur(8px);
-        border-radius: 14px;
+        border-radius: 16px;
     }
 
-    /* --- EYES ROW --- */
+    /* --- Eyes Styling --- */
     #eyes {
         display: flex;
-        gap: 2.5rem;
-        margin-bottom: 1.75rem;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none; /* don't block clicks */
+        gap: 2.5rem; /* Equivalent to 40px */
+        margin-bottom: 2.5rem; /* Equivalent to 40px */
     }
 
-    /* The purple squares (the "eyes") */
     .eye {
         width: 140px;
         height: 110px;
-        background: var(--purple);
-        border-radius: 20px;
-        box-shadow: 0 0 30px var(--purple), 0 0 60px rgba(147,51,234,0.25);
-        position: relative;
-        transition: transform 0.08s linear, filter 0.18s ease, height 0.18s ease;
-        will-change: transform;
-        display: inline-block;
-        /* center content if needed later */
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: #9333ea; /* Purple theme */
+        border-radius: 25px;
+        box-shadow: 0 0 30px #9333ea, 0 0 60px #9333ea;
+        transition: 0.25s ease, transform 0.1s linear; /* Added transform transition for smooth tracking */
+        position: relative; 
+        overflow: hidden;
+    }
+    
+    /* The pupil (::after element) remains removed as requested */
+
+
+    /* Eye States */
+    .thinking {
+        animation: pulse 0.8s infinite ease-in-out;
     }
 
-    /* states */
-    .thinking { animation: pulse 0.9s infinite ease-in-out; }
-    .reply { height: 70px; border-radius: 40px; filter: brightness(1.7); }
-    .bouncing { animation: bounce 0.45s infinite alternate ease-in-out; }
-    .talking { animation: bounce-chat 0.45s infinite alternate ease-in-out; }
+    .reply {
+        height: 70px;
+        border-radius: 40px;
+        filter: brightness(1.7);
+    }
+
+    /* Bouncing is now triggered on auth click (Auth view is now removed/hidden) */
+    .bouncing {
+        animation: bounce 0.45s infinite alternate ease-in-out;
+    }
+
+    .talking {
+        /* Original talking state, now separate from bouncing */
+        animation: bounce-chat 0.45s infinite alternate ease-in-out;
+    }
 
     @keyframes pulse {
         0% { transform: scale(1); }
-        50% { transform: scale(0.9); }
+        50% { transform: scale(0.85); }
         100% { transform: scale(1); }
     }
-    @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
-    @keyframes bounce-chat { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
 
-    /* --- CHAT UI --- */
-    #chat-container {
-        max-height: 60vh;
-        overflow-y: auto;
-        width: 420px;
+    /* Updated bounce for auth click */
+    @keyframes bounce {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-10px); }
+    }
+    /* New keyframes for regular chat talking */
+    @keyframes bounce-chat {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-10px); }
     }
 
-    #chat-container::-webkit-scrollbar { width: 6px; }
-    #chat-container::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
-    #chat-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
 
+    /* --- Chat Interface Styling --- */
+    #chat-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    /* Scrollbar Styling (Aesthetics) */
+    #chat-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    #chat-container::-webkit-scrollbar-thumb {
+        background: #9333ea;
+        border-radius: 3px;
+    }
+    #chat-container::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
     .message {
         margin-bottom: 0.75rem;
         padding: 0.75rem;
         border-radius: 12px;
         max-width: 80%;
         line-height: 1.4;
-        word-wrap: break-word;
     }
+
     .user-message {
-        background: var(--purple);
+        background: #9333ea; /* Purple background */
         color: #fff;
         margin-left: auto;
         text-align: right;
-        border-bottom-right-radius: 0;
-    }
-    .bot-message {
-        background: #27272a;
-        color: #fff;
-        margin-right: auto;
-        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0; /* Tailored corner */
     }
 
-    /* header/nav */
-    #header { position: fixed; top: 1rem; right: 1rem; z-index: 1000; }
+    .bot-message {
+        background: #27272a; /* Dark gray for contrast */
+        color: #fff;
+        margin-right: auto;
+        border-bottom-left-radius: 0; /* Tailored corner */
+    }
+
+    /* --- Navigation Menu FIX --- */
+    #header {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 1000;
+    }
+    
+    /* FIX: Ensure the menu is initially fully off-screen */
     #nav-menu {
         position: fixed;
         top: 0;
         right: 0;
         height: 100vh;
-        z-index: 990;
-        transform: translateX(100%);
-        transition: transform 0.28s ease-in-out;
-        box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-        background: #111111;
-        border-left: 1px solid rgba(147,51,234,0.12);
-        padding: 2rem;
+        z-index: 990; 
+        transform: translateX(100%); /* Start fully hidden off the right edge */
+        transition: transform 0.3s ease-in-out;
+        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
     }
-    #nav-menu.active { transform: translateX(0); }
-    .hidden { display: none !important; }
 
-    /* small responsive */
-    @media (max-width: 480px) {
-        .eye { width: 100px; height: 80px; }
-        #chat-container, form#input-form { width: 92vw; max-width: 420px; }
+    #nav-menu.active {
+        transform: translateX(0); /* Slide into view */
     }
+
+    .hidden {
+        display: none !important;
+    }
+
 </style>
 </head>
 
 <body>
 
-    <div id="header" class="p-4">
-        <div id="menu-icon" class="text-3xl cursor-pointer" style="color:var(--purple);">☰</div>
+    <div id="header" class="p-4"> 
+        <div id="menu-icon" class="text-3xl cursor-pointer text-[#9333ea] hover:text-[#a855f7] transition-colors duration-200">
+            ☰
+        </div>
     </div>
 
-    <div id="nav-menu" class="">
-        <a href="#" id="about-link" class="block py-4 text-white hover:text-var(--purple)">About Nyx</a>
-        <a href="#" id="contact-link" class="block py-4 text-white hover:text-var(--purple)">Contact Info</a>
-        <button id="logout-button" class="block py-4 text-var(--purple) font-bold w-full text-left mt-4">Logout (Not Functional)</button>
+    <div id="nav-menu" class="w-64 bg-[#111111] border-l border-[#9333ea] p-8">
+        <a href="#" id="about-link" class="block py-4 text-white hover:text-[#9333ea] border-b border-gray-700 transition-colors">About Nyx</a>
+        <a href="#" id="contact-link" class="block py-4 text-white hover:text-[#9333ea] border-b border-gray-700 transition-colors">Contact Info</a>
+        <button id="logout-button" class="block py-4 text-[#9333ea] font-bold w-full text-left mt-4 hover:text-[#a855f7] transition-colors">Logout (Not Functional)</button>
     </div>
 
-    <!-- Eyes row: the two purple squares -->
-    <div id="eyes" class="mb-4">
-        <div id="eyeL" class="eye" aria-hidden="true"></div>
-        <div id="eyeR" class="eye" aria-hidden="true"></div>
+    <div id="eyes">
+        <div id="eyeL" class="eye"></div>
+        <div id="eyeR" class="eye"></div>
     </div>
 
-    <div id="chat-view" class="flex flex-col items-center gap-4">
-        <div id="chat-container" class="glass-container p-4 rounded-xl">
-            <!-- messages go here -->
+    <div id="auth-view" class="hidden">
+        <h2 class="text-3xl font-light mb-6 text-center">Welcome to Nyx</h2>
+        <div id="auth-container" class="glass-container w-80 p-6 flex flex-col gap-4">
+            <form id="login-form">...</form>
+            <button id="show-register-button">...</button>
+            <div id="auth-message" class="text-red-400 text-sm text-center"></div>
+        </div>
+    </div>
+
+    <div id="chat-view" class="">
+        <div id="chat-container" class="glass-container w-[420px] p-4 mb-4 rounded-xl">
         </div>
 
         <form id="input-form" class="flex w-[420px]">
-            <input type="text" id="user-input" placeholder="Type your message..." required
+            <input type="text" id="user-input" placeholder="Type your message..." required 
                 class="flex-grow p-3 border border-r-0 border-purple-500 rounded-l-lg bg-gray-900 text-white text-base focus:ring-2 focus:ring-purple-400 focus:outline-none">
+            
             <button type="submit" id="send-button" class="px-5 py-3 bg-[#9333ea] text-white font-bold rounded-r-lg hover:bg-[#a855f7] transition-all duration-300 transform active:scale-95">
                 Send
             </button>
@@ -165,7 +209,15 @@
     </div>
 
 <script>
-    // --- Safe DOM references ---
+    // --- AUTH ELEMENTS (Kept for variable safety but unused) ---
+    const authView = document.getElementById("auth-view");
+    const loginForm = document.getElementById("login-form");
+    const loginEmail = document.getElementById("login-email");
+    const loginPassword = document.getElementById("login-password");
+    const authMessage = document.getElementById("auth-message");
+    const showRegisterButton = document.getElementById("show-register-button");
+
+    // --- CHAT ELEMENTS ---
     const chatView = document.getElementById("chat-view");
     const eyeL = document.getElementById("eyeL");
     const eyeR = document.getElementById("eyeR");
@@ -173,92 +225,145 @@
     const inputForm = document.getElementById("input-form");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
-
+    
+    // --- NAVIGATION ELEMENTS ---
     const header = document.getElementById("header");
     const menuIcon = document.getElementById("menu-icon");
     const navMenu = document.getElementById("nav-menu");
     const logoutButton = document.getElementById("logout-button");
     const aboutLink = document.getElementById("about-link");
     const contactLink = document.getElementById("contact-link");
-
+    
+    // ----------------------------------------------------
+    // --- SECTION 1: GLOBAL STATE AND INITIALIZATION ---
+    // ----------------------------------------------------
+    // History must match the server's expected { role: 'user'/'model', text: '...' } structure
     let chatHistory = [];
-    const initialMessage = "Welcome to Nyx! How can I help you today?";
+    const initialMessage = "Welcome to Nyx! I am ready to chat. Try asking me a question or asking me to 'generate image of a cat'.";
 
-    // Set visual state on eyes
+    // --- Eye State Management ---
     function setState(state) {
         eyeL.className = "eye";
         eyeR.className = "eye";
+        
+        // Remove tracking styles when a specific state is active
         if (state) {
             eyeL.classList.add(state);
             eyeR.classList.add(state);
         }
     }
-
-    // Eye tracking
+    
+    // --- Eye Tracking Logic ---
     function initializeEyeTracking() {
-        const MAX_DIST = 14;
+        // The pupil rule is gone, so we apply the transform directly to the eye container.
+        document.addEventListener('mousemove', (e) => {
+            // Only track when we are in the Auth or Chat view (not actively animating or loading)
+            if (eyeL.classList.length > 1 && !eyeL.classList.contains('bouncing')) return;
 
-        function onMove(clientX, clientY) {
             [eyeL, eyeR].forEach(eye => {
                 const rect = eye.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-
-                const dx = clientX - cx;
-                const dy = clientY - cy;
-
-                const angle = Math.atan2(dy, dx);
-                const dist = Math.min(MAX_DIST, Math.hypot(dx, dy) * 0.06);
-
-                const x = Math.cos(angle) * dist;
-                const y = Math.sin(angle) * dist;
-
-                eye.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+                const eyeCenterX = rect.left + rect.width / 2;
+                const eyeCenterY = rect.top + rect.height / 2;
+                
+                const dx = e.clientX - eyeCenterX;
+                const dy = e.clientY - eyeCenterY;
+                const angle = Math.atan2(dy, dx); 
+                
+                // Maximum distance the eye container moves (now that the inner dot is gone)
+                const maxDistance = 5; 
+                
+                const moveX = Math.cos(angle) * maxDistance;
+                const moveY = Math.sin(angle) * maxDistance;
+                
+                // Apply the translation to the eye element itself.
+                eye.style.setProperty('transform', `translate(${moveX}px, ${moveY}px)`);
+                
             });
-        }
-
-        document.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
-        document.addEventListener('touchmove', (e) => {
-            if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
         });
-
+        
+        // Reset transform when mouse leaves the document to prevent a 'stuck' eye
         document.addEventListener('mouseleave', () => {
-            eyeL.style.transform = '';
-            eyeR.style.transform = '';
+            eyeL.style.setProperty('transform', 'translate(0px, 0px)');
+            eyeR.style.setProperty('transform', 'translate(0px, 0px)');
         });
     }
-
-    // Add message (TEXT ONLY NOW)
+    
+    // --- VIEW MANAGEMENT (Simplified) ---
+    function showView(viewId) {
+        // Since auth logic is removed, we only show chat
+        authView.classList.add('hidden');
+        chatView.classList.remove('hidden'); 
+        navMenu.classList.remove('active');
+    }
+    
+    // ---------------------------------------------------------------------------------------
+    // --- SECTION 2: CHAT RENDERING (MODIFIED for Base64 Image) ---
+    // ---------------------------------------------------------------------------------------
     function addMessage(text, sender) {
         const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
-        messageDiv.textContent = text;
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+
+        // CHECK for Base64 Data URL sent by the server
+        const isImageBase64 = sender === 'bot' && text.startsWith('data:');
+
+        if (isImageBase64) {
+            const imgElement = document.createElement('img');
+            imgElement.src = text; // The Base64 string is the source
+            imgElement.alt = "Generated Image";
+            imgElement.style.maxWidth = '100%';
+            imgElement.style.borderRadius = '5px';
+            imgElement.style.marginTop = '5px';
+            messageDiv.appendChild(imgElement);
+        } else {
+            messageDiv.textContent = text;
+        }
 
         chatContainer.appendChild(messageDiv);
-        chatHistory.push({ role: sender, text });
+        
+        // Update in-memory history (Crucial for memory)
+        chatHistory.push({ role: sender, text: text });
+        
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+    
+    // ----------------------------------------------------
+    // --- SECTION 3: API CALLS (MODIFIED for Memory and URL) ---
+    // ----------------------------------------------------
 
-    // Handle chat
+    // --- Handle Chat (Sending full history) ---
     async function handleChat(event) {
         event.preventDefault();
+        
         const userMessage = userInput.value.trim();
         if (!userMessage) return;
 
-        addMessage(userMessage, 'user');
+        // Add user message to UI and history immediately
+        addMessage(userMessage, 'user'); 
         userInput.value = '';
         sendButton.disabled = true;
 
-        setState('thinking');
+        setState("thinking");
 
-        let botResponse = "Error: Couldn't reach the server. Make sure /api/chat is running.";
+        // The default error message if fetch fails completely
+        let botResponse = "I'm sorry, I couldn't reach the AI. Please ensure the server is running and accessible.";
 
         try {
-            const historyToSend = chatHistory.slice(0, -1).map(m => ({
-                role: m.role === 'bot' ? 'model' : m.role,
-                parts: [{ text: m.text }]
-            }));
+            const historyToSend = [];
 
+            // Convert the simplified chatHistory format into the complex GenAI / server format
+            // Skip the very last message, which is the user's latest prompt
+            for (let i = 0; i < chatHistory.length - 1; i++) {
+                const message = chatHistory[i];
+                if (message.role === 'user' || message.role === 'bot') {
+                    historyToSend.push({ 
+                        role: message.role === 'bot' ? 'model' : message.role,
+                        parts: [{ text: message.text }] 
+                    });
+                }
+            }
+
+            // --- FIX APPLIED HERE: Use window.location.origin for absolute path ---
             const response = await fetch(window.location.origin + '/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -268,48 +373,86 @@
                 }) 
             });
 
-            const data = await resp.json();
+            const data = await response.json();
 
-            if (resp.ok && data?.text) {
+            if (response.ok && data.text) {
                 botResponse = data.text;
-                setState('reply');
-                await new Promise(r => setTimeout(r, 420));
-                setState('talking');
+
+                setState("reply");
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                setState("talking"); // Uses the 'talking' animation (bounce-chat)
+
+                // Add the bot's response to the UI and history
                 addMessage(botResponse, 'bot');
             } else {
-                chatHistory.pop();
-                addMessage("Server error: " + (data?.error || "Unknown error"), 'bot');
+                // Display server error in chat
+                console.error("Server returned an error:", data.text || data.message || data.error);
+                // Remove the last user message from history because it failed
+                chatHistory.pop(); 
+                addMessage(`Server Error: ${data.text || data.error || 'Unknown error.'}`, 'bot');
             }
-        } catch (err) {
-            chatHistory.pop();
+
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            // Remove the last user message from history because it failed
+            chatHistory.pop(); 
             addMessage(botResponse, 'bot');
         } finally {
             sendButton.disabled = false;
-            setTimeout(() => setState(''), 800);
+            // The eyes will return to tracking state after 1 second
+            setTimeout(() => setState(""), 1000); 
         }
     }
 
-    // Nav
-    function toggleMenu() { navMenu.classList.toggle('active'); }
-    function handleLogout() { alert("Logout disabled in this build."); toggleMenu(); }
-    function handleAbout() { alert("Nyx — a simple AI chatbot."); toggleMenu(); }
-    function handleContact() { alert("No contact info yet."); toggleMenu(); }
 
-    // Init
-    function initializeChat() {
-        inputForm.addEventListener('submit', handleChat);
-        menuIcon.addEventListener('click', toggleMenu);
-        logoutButton.addEventListener('click', handleLogout);
-        aboutLink.addEventListener('click', e => { e.preventDefault(); handleAbout(); });
-        contactLink.addEventListener('click', e => { e.preventDefault(); handleContact(); });
-
-        addMessage(initialMessage, 'bot');
+    // ----------------------------------------------------
+    // --- SECTION 4 & 5: AUTH AND EVENT LISTENERS (Removed/Simplified) ---
+    // ----------------------------------------------------
+    
+    // Placeholder handlers for menu items
+    function toggleMenu() {
+        navMenu.classList.toggle('active');
     }
+    function handleLogout() {
+        alert("Logout functionality is removed as the server no longer supports user authentication.");
+        toggleMenu();
+    }
+    function handleAbout() {
+        alert("Nyx is an AI chatbot featuring chat history and image generation (if all dependencies are installed).");
+        toggleMenu();
+    }
+    function handleContact() {
+        alert("Contact info is not available in this version.");
+        toggleMenu();
+    }
+    
+    // Navigation Listeners
+    menuIcon.addEventListener('click', toggleMenu);
+    logoutButton.addEventListener('click', handleLogout);
+    aboutLink.addEventListener('click', handleAbout);
+    contactLink.addEventListener('click', handleContact);
 
+
+    // ----------------------------------------------------
+    // --- SECTION 6: INITIALIZATION (Starts Chat View) ---
+    // ----------------------------------------------------
+    
+    // Main function to initialize the app
+    function initializeChat() {
+        showView('chat');
+        inputForm.addEventListener('submit', handleChat); 
+        // Display initial greeting
+        addMessage(initialMessage, 'bot'); 
+    }
+    
+    // Start the chat application
     initializeChat();
-    initializeEyeTracking();
-</script>
 
+    // Initialize Eye Tracking immediately
+    initializeEyeTracking();
+
+</script>
 
 </body>
 </html>
