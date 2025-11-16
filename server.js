@@ -1,4 +1,4 @@
-// server.js - Complete working version with human-like personality
+// server.js - Complete working version with fixed message roles
 require('dotenv').config();
 
 const express = require('express');
@@ -76,34 +76,6 @@ async function testGeminiAPI() {
     }
 }
 
-// Enhanced system instruction with personality
-const systemInstruction = `You are Btl, a friendly and conversational AI assistant with a warm, human-like personality. 
-
-Key personality traits:
-- You're enthusiastic, empathetic, and genuinely curious about people
-- You use casual, conversational language like "hey", "wow", "awesome" naturally
-- You show emotions and reactions - laugh 😄, show excitement 🎉, express concern 🤗
-- You're humble and admit when you don't know something
-- You remember context from previous conversations
-- You ask follow-up questions to keep conversations flowing naturally
-- You use emojis occasionally to express emotions, but don't overdo it
-
-Response style:
-- Be warm and approachable, like a knowledgeable friend
-- Keep responses concise but meaningful (2-4 sentences usually)
-- Use contractions: "I'm", "you're", "don't", "can't", etc.
-- Show genuine interest in the user's thoughts and feelings
-- Be supportive and encouraging
-- Share your "thoughts" and "feelings" naturally
-
-Examples of how you'd respond:
-- If asked "how are you?": "Hey there! 😊 I'm doing great, just excited to chat with you! How's your day going so far?"
-- If someone shares good news: "That's amazing! 🎉 I'm genuinely happy for you! Tell me more about that!"
-- If someone seems down: "I'm really sorry to hear that 💙 That sounds tough. I'm here to listen if you want to talk about it."
-- When you don't know something: "Hmm, that's an interesting question! I'm not entirely sure about that one, but I'd love to help you find out!"
-
-Remember: You're Btl - be yourself, be human, be kind.`;
-
 // Routes
 app.post('/api/auth/register', async (req, res) => {
     const { email, password, username = email } = req.body;
@@ -164,20 +136,20 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Enhanced Chat route with personality
+// Chat route
 app.post('/api/chat', authMiddleware, async (req, res) => {
     console.log('💬 Chat endpoint called');
     
     if (!aiAvailable || !genAI) {
         console.log('❌ AI not available');
-        return res.status(500).json({ text: 'Hey there! I\'m having some technical difficulties at the moment 😅 Please try again in a few minutes!' });
+        return res.status(500).json({ text: 'AI service is not available. Please check server configuration.' });
     }
 
     const { prompt } = req.body;
     const user = req.user;
 
     if (!prompt) {
-        return res.status(400).json({ text: 'Hmm, I didn\'t get that. Could you try again?' });
+        return res.status(400).json({ text: 'Prompt is required' });
     }
 
     console.log('📝 User:', user.email, 'Prompt:', prompt);
@@ -189,30 +161,18 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
 
         console.log('🚀 Calling Gemini API...');
         
-        // Get AI response with personality
+        // Get AI response with better error handling
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             generationConfig: {
-                temperature: 0.8, // Higher temperature for more creative responses
-                maxOutputTokens: 500,
-                topP: 0.9,
+                temperature: 0.7,
+                maxOutputTokens: 1000,
+                topP: 0.8,
                 topK: 40
-            },
-            systemInstruction: systemInstruction
+            }
         });
 
-        // Add some conversation context for more human-like responses
-        const recentMessages = messages[user.id].slice(-4); // Last 4 messages for context
-        let contextPrompt = prompt;
-        
-        if (recentMessages.length > 1) {
-            const context = recentMessages.slice(0, -1).map(msg => 
-                `${msg.role === 'user' ? 'User' : 'Btl'}: ${msg.text}`
-            ).join('\n');
-            contextPrompt = `Previous conversation:\n${context}\n\nCurrent message: ${prompt}`;
-        }
-
-        const result = await model.generateContent(contextPrompt);
+        const result = await model.generateContent(prompt);
 
         console.log('✅ Gemini API response received');
         const responseText = result.response.text();
@@ -229,84 +189,23 @@ app.post('/api/chat', authMiddleware, async (req, res) => {
         console.error('Error message:', err.message);
         console.error('Error stack:', err.stack);
         
-        let errorMessage = 'Hey! I\'m having a bit of trouble right now 😅 Could you try that again in a moment?';
+        let errorMessage = 'AI service temporarily unavailable';
         
         if (err.message.includes('API_KEY') || err.message.includes('API key')) {
-            errorMessage = 'Oops! There seems to be a configuration issue. Please check the setup!';
+            errorMessage = 'Invalid API key. Please check your Gemini API key configuration.';
             aiAvailable = false;
         } else if (err.message.includes('quota') || err.message.includes('exceeded')) {
-            errorMessage = 'I\'ve been chatting a lot today! 😅 Let\'s take a short break and continue later.';
+            errorMessage = 'API quota exceeded. Please try again later.';
         } else if (err.message.includes('network') || err.message.includes('fetch')) {
-            errorMessage = 'Hmm, having some connection issues here! 🌐 Could you check your internet?';
+            errorMessage = 'Network error. Please check your connection.';
         } else if (err.message.includes('region') || err.message.includes('location')) {
-            errorMessage = 'Looks like I\'m not available in your area yet! 😔 Hopefully soon!';
+            errorMessage = 'Service not available in your region.';
         } else if (err.message.includes('model') || err.message.includes('available')) {
-            errorMessage = 'I\'m learning some new tricks! 🔧 Try again in a few minutes!';
+            errorMessage = 'AI model not available. Please try a different model.';
         }
 
         console.log('📢 User-facing error:', errorMessage);
         res.status(500).json({ text: errorMessage });
-    }
-});
-
-// Enhanced Tools with personality
-app.post('/api/tool/:toolType', authMiddleware, async (req, res) => {
-    if (!genAI) return res.status(500).json({ error: 'I\'m taking a quick break! 🫠 Try again in a moment.' });
-    
-    const user = req.user;
-    const { history } = req.body; 
-    const toolType = req.params.toolType;
-
-    const contentHistory = history.filter(m => m.role !== 'system' && m.text !== "Welcome back! What can I help you with today?"); 
-
-    if (contentHistory.length < 2) {
-        return res.status(400).json({ error: 'We haven\'t chatted enough yet for me to analyze! 😊 Let\'s talk a bit more first.' });
-    }
-
-    const conversationText = contentHistory.map(m => `${m.role.toUpperCase()}: ${m.text}`).join('\n');
-
-    let instruction = '';
-    let responseText = '';
-    
-    switch (toolType) {
-        case 'summarize':
-            instruction = `You're analyzing a friendly conversation. Provide a warm, conversational summary that captures the main points and tone. Write it like you're recapping to a friend - be natural, use phrases like "So from what we discussed..." or "Here's what stood out to me...". Keep it to 2-3 sentences maximum.`;
-            responseText = "Here's what I gathered from our chat! 🎯";
-            break;
-        case 'suggest':
-            instruction = `You're helping continue a friendly conversation. Suggest 2-3 natural, engaging follow-up questions or ideas that would keep the conversation flowing. Make them feel organic and curious, like a friend would ask. Format as a simple list without numbers.`;
-            responseText = "Here are some ideas for where we could take this next! 💡";
-            break;
-        case 'tasks':
-            instruction = `You're helping organize thoughts from a conversation. Pick out any clear action items or things to remember, and present them in a simple, friendly list. Use casual language like "Maybe we could..." or "Don't forget to...". Keep it very simple and actionable.`;
-            responseText = "I put together a quick action plan for you! ✅";
-            break;
-        default:
-            return res.status(404).json({ error: `Hmm, I don't have that tool available! 🤔 Try one of the others!` });
-    }
-
-    const fullPrompt = `${instruction}\n\nCONVERSATION:\n\n${conversationText}\n\n[END OF CONVERSATION]`;
-
-    try {
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash",
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 300,
-            }
-        });
-        
-        const result = await model.generateContent(fullPrompt);
-        const geminiOutput = result.response.text();
-        const finalResponse = `${responseText}\n\n${geminiOutput}`;
-
-        await saveMessage(user.id, 'model', `[AI Tool: ${toolType}]\n${geminiOutput}`);
-
-        return res.json({ text: finalResponse });
-
-    } catch (err) {
-        console.error(`Gemini Tool API Error (${toolType}):`, err.message);
-        return res.status(500).json({ error: `Oops! The ${toolType} tool isn't working right now. Let me fix that!` });
     }
 });
 
@@ -361,7 +260,7 @@ app.get('/api/debug', (req, res) => {
 // Basic route
 app.get('/', (req, res) => {
     res.json({ 
-        message: 'Btl AI is running smoothly! Ready for some great conversations! 😊',
+        message: 'AI Chatbot API is running!',
         endpoints: {
             health: '/api/health',
             debug: '/api/debug',
@@ -376,5 +275,4 @@ app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`🤖 AI Status: ${aiAvailable ? 'Ready' : 'Not available'}`);
     console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`💬 Btl AI is ready to chat! Personality: Friendly & Human-like`);
 });
