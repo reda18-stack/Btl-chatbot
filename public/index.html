@@ -2,24 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>btl ChatBot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Btl AI Chat</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
     /* --- BASE --- */
     :root { --purple: #9333ea; --purple-2: #a855f7; --dark: #0c001f; }
-    html,body { height: 100%; margin: 0; }
+    html,body { 
+        height: 100%; 
+        margin: 0; 
+        padding: 0;
+        overflow: hidden;
+    }
     body {
         background: linear-gradient(135deg, #1f013d 0%, var(--dark) 100%);
         display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        flex-direction: column;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         color: #fff;
-        transition: all 0.4s ease;
-        padding: 2rem;
+        padding: 0;
     }
 
     /* --- GLASS --- */
@@ -69,7 +72,7 @@
         transition: background 0.2s, transform 0.1s;
     }
     .tool-button:hover { background: rgba(147,51,234, 0.25); }
-    .tool-button:active { transform: scale(0.99); }
+    .tool-button:active { transform: scale(0.98); }
 
     /* --- VOICE RECORDER MODAL --- */
     #voice-modal .modal-content {
@@ -133,19 +136,19 @@
     /* --- EYES ROW (Chat Only) --- */
     #eyes {
         display: none; /* Hidden by default, shown when chat-view is active */
-        gap: 2.5rem;
-        margin-bottom: 1.75rem;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
         align-items: center;
         justify-content: center;
         pointer-events: none;
     }
 
     .eye {
-        width: 140px;
-        height: 110px;
+        width: 80px;
+        height: 65px;
         background: var(--purple);
-        border-radius: 20px;
-        box-shadow: 0 0 30px var(--purple), 0 0 60px rgba(147,51,234,0.25);
+        border-radius: 15px;
+        box-shadow: 0 0 20px var(--purple), 0 0 40px rgba(147,51,234,0.25);
         position: relative;
         transition: transform 0.08s linear, filter 0.18s ease, height 0.18s ease;
         will-change: transform;
@@ -156,33 +159,43 @@
 
     /* states */
     .thinking { animation: pulse 0.9s infinite ease-in-out; }
-    .reply { height: 70px; border-radius: 40px; filter: brightness(1.7); }
+    .reply { height: 50px; border-radius: 25px; filter: brightness(1.7); }
     .talking { animation: bounce-chat 0.45s infinite alternate ease-in-out; }
 
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(0.9); } 100% { transform: scale(1); } }
-    @keyframes bounce-chat { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
+    @keyframes bounce-chat { 0% { transform: translateY(0); } 100% { transform: translateY(-5px); } }
 
     /* --- CHAT UI --- */
-    #chat-view { display: none; /* Hidden by default */ }
+    #chat-view { 
+        display: none; /* Hidden by default */ 
+        flex: 1;
+        flex-direction: column;
+        width: 100%;
+        padding: 0.5rem;
+        box-sizing: border-box;
+    }
     #chat-container {
-        max-height: 60vh;
+        flex: 1;
         overflow-y: auto;
-        width: 420px;
-        padding-top: 1rem; /* Added padding to top */
+        width: 100%;
+        padding: 0.5rem;
+        box-sizing: border-box;
+        margin-bottom: 0.5rem;
     }
 
-    #chat-container::-webkit-scrollbar { width: 6px; }
-    #chat-container::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
+    #chat-container::-webkit-scrollbar { width: 4px; }
+    #chat-container::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 2px; }
     #chat-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
 
     .message {
         margin-bottom: 0.75rem;
         padding: 0.75rem;
         border-radius: 12px;
-        max-width: 80%;
+        max-width: 85%;
         line-height: 1.4;
         word-wrap: break-word;
         white-space: pre-wrap; /* Preserve formatting for lists/summaries */
+        font-size: 0.95rem;
     }
     .user-message {
         background: var(--purple);
@@ -236,14 +249,18 @@
     /* --- AUTH UI --- */
     #login-view {
         width: 100%;
-        max-width: 380px;
+        height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        box-sizing: border-box;
     }
     .auth-card {
-        padding: 2.5rem;
+        padding: 2rem;
         width: 100%;
+        max-width: 350px;
     }
     .input-field {
         width: 100%;
@@ -254,6 +271,8 @@
         background: rgba(0,0,0,0.3);
         color: white;
         transition: border-color 0.2s;
+        font-size: 1rem;
+        box-sizing: border-box;
     }
     .input-field:focus {
         border-color: var(--purple-2);
@@ -268,17 +287,28 @@
         font-weight: bold;
         border-radius: 8px;
         transition: background-color 0.2s;
+        font-size: 1rem;
+        border: none;
     }
     .auth-button:hover { background: var(--purple-2); }
     .auth-button:disabled { background: #5a5a5a; cursor: not-allowed; }
 
     /* Nav */
-    #header { position: fixed; top: 1rem; right: 1rem; z-index: 1000; display: none; } /* Hidden until logged in */
+    #header { 
+        position: fixed; 
+        top: 0.5rem; 
+        right: 0.5rem; 
+        z-index: 1000; 
+        display: none; /* Hidden until logged in */
+        padding: 0.5rem;
+    }
     #nav-menu {
         position: fixed;
         top: 0;
         right: 0;
         height: 100vh;
+        width: 70%;
+        max-width: 300px;
         z-index: 990;
         transform: translateX(100%);
         transition: transform 0.28s ease-in-out;
@@ -286,8 +316,65 @@
         background: #111111;
         border-left: 1px solid rgba(147,51,234,0.12);
         padding: 2rem;
+        box-sizing: border-box;
     }
     #nav-menu.active { transform: translateX(0); }
+    
+    /* Mobile-specific styles */
+    .mobile-input-area {
+        display: flex;
+        width: 100%;
+        padding: 0.5rem;
+        box-sizing: border-box;
+        background: rgba(0,0,0,0.3);
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .mobile-button {
+        padding: 0.75rem;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .mobile-input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid rgba(147,51,234,0.3);
+        border-radius: 22px;
+        background: rgba(0,0,0,0.5);
+        color: white;
+        margin: 0 0.5rem;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+    
+    .mobile-input:focus {
+        border-color: var(--purple-2);
+        outline: none;
+    }
+    
+    /* Touch-friendly adjustments */
+    button, .tool-button, .voice-button {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    /* Safe area for notched phones */
+    @supports(padding: max(0px)) {
+        body {
+            padding-left: max(0.5rem, env(safe-area-inset-left));
+            padding-right: max(0.5rem, env(safe-area-inset-right));
+            padding-top: max(0.5rem, env(safe-area-inset-top));
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+        }
+    }
 </style>
 </head>
 
@@ -322,7 +409,7 @@
     <div id="voice-modal" class="modal" onclick="closeVoiceModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h3 class="text-xl font-bold mb-4 text-center" style="color:var(--purple-2);">🎤 Voice Message</h3>
-            <p class="text-sm text-gray-400 mb-4 text-center">Click record to start speaking</p>
+            <p class="text-sm text-gray-400 mb-4 text-center">Tap record to start speaking</p>
 
             <div id="voice-visualizer">
                 <div id="voice-wave"></div>
@@ -387,31 +474,29 @@
 
 
     <!-- --- 2. CHAT VIEW (Initially Hidden) --- -->
-    <div id="chat-view" class="flex flex-col items-center gap-4">
+    <div id="chat-view" class="flex flex-col items-center">
         <!-- Eyes row: the two purple squares -->
         <div id="eyes" class="mb-4">
             <div id="eyeL" class="eye" aria-hidden="true"></div>
             <div id="eyeR" class="eye" aria-hidden="true"></div>
         </div>
 
-        <div id="chat-content" class="flex flex-col items-center gap-4">
-            <div id="chat-container" class="glass-container p-4 rounded-xl">
-                <!-- messages go here -->
-            </div>
+        <div id="chat-container" class="glass-container flex-1 w-full">
+            <!-- messages go here -->
+        </div>
 
-            <form id="input-form" class="flex w-[420px] max-w-full">
-                <button type="button" id="voice-button" class="px-3 py-3 mr-2 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-600 transition-all duration-300 transform active:scale-95 text-xl" title="Voice Message">
-                    🎤
-                </button>
-                <button type="button" id="tool-button" class="px-3 py-3 mr-2 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-600 transition-all duration-300 transform active:scale-95 text-xl" title="AI Tools">
-                    ✨
-                </button>
-                <input type="text" id="user-input" placeholder="Type your message..." required
-                    class="flex-grow p-3 border border-r-0 border-purple-500 rounded-l-lg bg-gray-900 text-white text-base focus:ring-2 focus:ring-purple-400 focus:outline-none">
-                <button type="submit" id="send-button" class="px-5 py-3 bg-[#9333ea] text-white font-bold rounded-r-lg hover:bg-[#a855f7] transition-all duration-300 transform active:scale-95">
-                    Send
-                </button>
-            </form>
+        <!-- Mobile-optimized input area -->
+        <div class="mobile-input-area">
+            <button type="button" id="voice-button" class="mobile-button bg-gray-700 text-white" title="Voice Message">
+                🎤
+            </button>
+            <input type="text" id="user-input" placeholder="Type a message..." class="mobile-input">
+            <button type="button" id="tool-button" class="mobile-button bg-gray-700 text-white mr-2" title="AI Tools">
+                ✨
+            </button>
+            <button type="submit" id="send-button" class="mobile-button bg-[#9333ea] text-white">
+                ➤
+            </button>
         </div>
     </div>
 
@@ -419,13 +504,12 @@
     // --- Safe DOM references ---
     const chatView = document.getElementById("chat-view");
     const chatContainer = document.getElementById("chat-container");
-    const inputForm = document.getElementById("input-form");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
-    const voiceButton = document.getElementById("voice-button"); // New Voice button
-    const toolButton = document.getElementById("tool-button"); // New Tool button
-    const toolModal = document.getElementById("tool-modal"); // New Tool Modal
-    const voiceModal = document.getElementById("voice-modal"); // New Voice Modal
+    const voiceButton = document.getElementById("voice-button");
+    const toolButton = document.getElementById("tool-button");
+    const toolModal = document.getElementById("tool-modal");
+    const voiceModal = document.getElementById("voice-modal");
     const eyeL = document.getElementById("eyeL");
     const eyeR = document.getElementById("eyeR");
 
@@ -522,7 +606,7 @@
         loadChatHistory();
     }
     
-    // --- CHAT LOGIC (Same as before, but with Auth token) ---
+    // --- CHAT LOGIC ---
 
     // Set visual state on eyes
     function setState(state) {
@@ -615,7 +699,7 @@
     }
 
     async function handleChat(event) {
-        event.preventDefault();
+        if (event) event.preventDefault();
         const userMessage = userInput.value.trim();
         if (!userMessage) return;
 
@@ -936,15 +1020,22 @@
         });
 
         // --- Chat & Nav Handlers ---
-        inputForm.addEventListener('submit', handleChat);
+        sendButton.addEventListener('click', handleChat);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleChat();
+            }
+        });
+        
         voiceButton.addEventListener('click', () => { 
             if (voiceButton.disabled) return;
             voiceModal.style.display = 'flex'; 
-        }); // Show voice modal
+        });
+        
         toolButton.addEventListener('click', () => { 
             if (toolButton.disabled) return;
             toolModal.style.display = 'flex'; 
-        }); // Show tool modal
+        });
         
         // Voice recording handlers
         startRecordBtn.addEventListener('click', startRecording);
@@ -971,44 +1062,29 @@
             showAuthView();
         }
 
-        initializeEyeTracking();
+        // Mobile-specific optimizations
+        initializeMobileOptimizations();
     }
 
-
-    // --- EYE TRACKING LOGIC (Kept for visual flair) ---
-    function initializeEyeTracking() {
-        const MAX_DIST = 14;
-
-        function onMove(clientX, clientY) {
-            if (chatView.style.display !== 'flex') return;
-
-            [eyeL, eyeR].forEach(eye => {
-                const rect = eye.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-
-                const dx = clientX - cx;
-                const dy = clientY - cy;
-
-                const angle = Math.atan2(dy, dx);
-                const dist = Math.min(MAX_DIST, Math.hypot(dx, dy) * 0.06);
-
-                const x = Math.cos(angle) * dist;
-                const y = Math.sin(angle) * dist;
-
-                eye.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-            });
+    // Mobile-specific optimizations
+    function initializeMobileOptimizations() {
+        // Prevent zoom on input focus
+        userInput.addEventListener('focus', () => {
+            document.body.style.zoom = "1.0";
+        });
+        
+        // Handle viewport height changes on mobile
+        function setViewportHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
         }
-
-        document.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
-        document.addEventListener('touchmove', (e) => {
-            if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
-        });
-
-        document.addEventListener('mouseleave', () => {
-            eyeL.style.transform = '';
-            eyeR.style.transform = '';
-        });
+        
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', setViewportHeight);
+        
+        // Improved touch interactions
+        document.addEventListener('touchstart', function() {}, {passive: true});
     }
 
     initializeApp();
