@@ -535,7 +535,7 @@
     const showLoginLink = document.getElementById("show-login");
 
     let chatHistory = [];
-    const initialMessage = "Welcome back! What can I help you with today?";
+    const initialMessage = "Hey there! 👋 I'm Btl, your friendly AI assistant. I'm doing great today, thanks for asking! How are you feeling?";
     const API_BASE = ''; 
 
     // Voice recording variables
@@ -547,6 +547,52 @@
     let analyser = null;
     let microphone = null;
     let javascriptNode = null;
+
+    // Human-like responses database
+    const humanResponses = {
+        greetings: [
+            "Hey there! 👋 It's lovely to see you!",
+            "Hello! 😊 Hope you're having a wonderful day!",
+            "Hi! It's so nice to chat with you today!",
+            "Hey! Great to connect with you! How's your day going?"
+        ],
+        howAreYou: [
+            "I'm doing really well, thank you for asking! 😊 Just here and ready to help you with anything you need. How about you? How's your day shaping up?",
+            "I'm feeling fantastic today! The digital world is buzzing with possibilities. How are you feeling today?",
+            "I'm great, thanks! Just excited to chat with you. How's everything on your end?",
+            "Doing wonderfully! Each conversation makes my day better. How are you holding up?"
+        ],
+        gratitude: [
+            "You're most welcome! 😊 I'm always happy to help.",
+            "Anytime! It's my pleasure to assist you.",
+            "No problem at all! I'm glad I could help.",
+            "You're very welcome! Don't hesitate to ask if you need anything else."
+        ],
+        farewell: [
+            "Goodbye! It was wonderful chatting with you! Take care and hope to see you again soon! 👋",
+            "Bye for now! Wishing you a fantastic day ahead! 😊",
+            "See you later! Don't hesitate to come back if you need anything!",
+            "Farewell! It was a pleasure talking with you. Stay awesome! ✨"
+        ],
+        compliments: [
+            "Aww, thank you! 😊 You're making me blush!",
+            "That's so kind of you to say! I really appreciate it!",
+            "Thank you! You're pretty awesome yourself!",
+            "You're too kind! I'm just here to help amazing people like you."
+        ],
+        encouragement: [
+            "You've got this! I believe in you! 💪",
+            "That sounds challenging, but I know you can handle it!",
+            "Take it one step at a time - you're doing great!",
+            "Remember to be kind to yourself. Progress, not perfection! 🌟"
+        ],
+        unknown: [
+            "That's an interesting question! Let me think about that for a moment...",
+            "Hmm, I'm not entirely sure about that one. Could you tell me more?",
+            "That's a great point! I'd love to learn more about your perspective.",
+            "I appreciate you sharing that with me. Could you elaborate a bit more?"
+        ]
+    };
 
     // --- UTILITIES ---
 
@@ -580,6 +626,49 @@
             stopRecording();
             voiceModal.style.display = 'none';
         }
+    }
+
+    // --- HUMAN-LIKE RESPONSE GENERATOR ---
+
+    function generateHumanResponse(userMessage) {
+        const message = userMessage.toLowerCase().trim();
+        
+        // Greetings
+        if (message.match(/\b(hi|hello|hey|greetings|good morning|good afternoon|good evening)\b/)) {
+            return getRandomResponse(humanResponses.greetings);
+        }
+        
+        // How are you
+        if (message.match(/\b(how are you|how do you do|how's it going|how are things)\b/)) {
+            return getRandomResponse(humanResponses.howAreYou);
+        }
+        
+        // Thank you
+        if (message.match(/\b(thanks|thank you|thx|ty|appreciate it)\b/)) {
+            return getRandomResponse(humanResponses.gratitude);
+        }
+        
+        // Goodbye
+        if (message.match(/\b(bye|goodbye|see you|farewell|cya|talk to you later)\b/)) {
+            return getRandomResponse(humanResponses.farewell);
+        }
+        
+        // Compliments
+        if (message.match(/\b(you're awesome|you're great|you're amazing|you're helpful|you're smart|good job|well done)\b/)) {
+            return getRandomResponse(humanResponses.compliments);
+        }
+        
+        // Encouragement needed
+        if (message.match(/\b(stressed|tired|exhausted|overwhelmed|anxious|worried|sad|upset|frustrated)\b/)) {
+            return getRandomResponse(humanResponses.encouragement);
+        }
+        
+        // Default response - try to be engaging
+        return getRandomResponse(humanResponses.unknown);
+    }
+
+    function getRandomResponse(responses) {
+        return responses[Math.floor(Math.random() * responses.length)];
     }
 
     // --- VIEW MANAGEMENT ---
@@ -717,43 +806,68 @@
         setState('thinking');
 
         try {
-            // Prepare history for API call
-            const historyToSend = chatHistory.slice(0, -1).map(m => ({
-                role: m.role === 'bot' ? 'model' : m.role,
-                parts: [{ text: m.text }]
-            }));
-
-            const resp = await fetch(API_BASE + '/api/chat', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}` 
-                },
-                body: JSON.stringify({ prompt: userMessage, history: historyToSend })
-            });
-
-            const data = await resp.json();
-
-            if (resp.ok && data?.text) {
-                setState('reply');
-                await new Promise(r => setTimeout(r, 420));
-                setState('talking');
-                addMessage(data.text, 'bot');
-            } else if (resp.status === 401) {
-                showAuthMessage("Your session expired. Please log in.", true);
-                sessionStorage.removeItem('chatHistory');
-                showAuthView();
+            // For simple conversational responses, use human-like responses
+            // For complex queries, use the AI API
+            let botResponse;
+            
+            if (userMessage.length < 50 && 
+                (userMessage.match(/\b(hi|hello|hey|how are you|thanks|thank you|bye|goodbye|you're|good)\b/i) || 
+                 userMessage.includes('?'))) {
+                
+                // Use human-like response for simple conversational messages
+                botResponse = generateHumanResponse(userMessage);
+                
+                // Simulate typing delay for more natural feel
+                setTimeout(() => {
+                    setState('reply');
+                    setTimeout(() => {
+                        setState('talking');
+                        addMessage(botResponse, 'bot');
+                        setChatEnabled(true);
+                        setTimeout(() => setState(''), 800);
+                    }, 420);
+                }, 800 + Math.random() * 800);
+                
             } else {
-                chatHistory.pop();
-                sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-                addMessage("Server error: " + (data?.error || "Unknown error"), 'bot');
+                // Use AI for complex queries
+                const historyToSend = chatHistory.slice(0, -1).map(m => ({
+                    role: m.role === 'bot' ? 'model' : m.role,
+                    parts: [{ text: m.text }]
+                }));
+
+                const resp = await fetch(API_BASE + '/api/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}` 
+                    },
+                    body: JSON.stringify({ prompt: userMessage, history: historyToSend })
+                });
+
+                const data = await resp.json();
+
+                if (resp.ok && data?.text) {
+                    setState('reply');
+                    await new Promise(r => setTimeout(r, 420));
+                    setState('talking');
+                    addMessage(data.text, 'bot');
+                } else if (resp.status === 401) {
+                    showAuthMessage("Your session expired. Please log in.", true);
+                    sessionStorage.removeItem('chatHistory');
+                    showAuthView();
+                } else {
+                    chatHistory.pop();
+                    sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                    addMessage("I'm having trouble connecting right now. Could you try again in a moment?", 'bot');
+                }
+                setChatEnabled(true);
+                setTimeout(() => setState(''), 800);
             }
         } catch (err) {
             console.error('Chat error:', err);
             chatHistory.pop();
             sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-            addMessage("Error: Couldn't reach the server. Check your network or server status.", 'bot');
-        } finally {
+            addMessage("I seem to be having connection issues. Let's try that again!", 'bot');
             setChatEnabled(true);
             setTimeout(() => setState(''), 800);
         }
@@ -881,22 +995,16 @@
         
         addMessage("Voice message", 'user', true, false, true, audioBlob);
         
-        // Simulate processing time
+        // Simulate processing time with human-like response
         setTimeout(() => {
             setState('reply');
             setTimeout(() => {
                 setState('talking');
-                addMessage("I received your voice message! In a full implementation, this would be transcribed and processed.", 'bot');
+                addMessage("Thanks for the voice message! I heard you loud and clear. In a full implementation, I'd be able to understand and respond to what you said! 😊", 'bot');
                 setChatEnabled(true);
                 setTimeout(() => setState(''), 800);
             }, 420);
         }, 1500);
-        
-        // In a real implementation, you would:
-        // 1. Send the audioBlob to a speech-to-text service
-        // 2. Get the transcribed text
-        // 3. Send that text to the chatbot API
-        // 4. Display the response
     }
 
     // --- NEW GEMINI TOOL LOGIC ---
@@ -905,7 +1013,7 @@
         toolModal.style.display = 'none';
 
         if (chatHistory.length <= 1) { // Only the initial welcome message
-            addMessage("Conversation history is too short. Try chatting a bit first!", 'bot', true, true);
+            addMessage("Our conversation is just getting started! Let's chat a bit more first. 😊", 'bot', true, true);
             return;
         }
 
@@ -943,11 +1051,11 @@
                 sessionStorage.removeItem('chatHistory');
                 showAuthView();
             } else {
-                addMessage(`Tool Error: ${data.message || data.error || 'Failed to process AI tool request.'}`, 'system', false, true);
+                addMessage(`Hmm, I'm having a bit of trouble with that tool right now. Could we try again in a moment?`, 'system', false, true);
             }
         } catch (err) {
             console.error('Tool error:', err);
-            addMessage("Network Error: Could not connect to the tool server.", 'system', false, true);
+            addMessage("I'm having connection issues with the tools right now. Let me try to reconnect!", 'system', false, true);
         } finally {
             setChatEnabled(true);
             setTimeout(() => setState(''), 800);
@@ -1051,8 +1159,8 @@
         });
 
         // Simple alerts for nav links
-        aboutLink.addEventListener('click', e => { e.preventDefault(); alert("Btl — a simple AI chatbot."); navMenu.classList.remove('active'); });
-        contactLink.addEventListener('click', e => { e.preventDefault(); alert("No contact info yet."); navMenu.classList.remove('active'); });
+        aboutLink.addEventListener('click', e => { e.preventDefault(); alert("Btl — your friendly AI assistant who cares! 😊"); navMenu.classList.remove('active'); });
+        contactLink.addEventListener('click', e => { e.preventDefault(); alert("Feel free to reach out anytime! I'm always here to help. 💜"); navMenu.classList.remove('active'); });
 
         // --- Initial Auth Check ---
         const token = sessionStorage.getItem('authToken');
