@@ -245,6 +245,15 @@
         font-size: 0.8rem;
         color: #ccc;
     }
+    .transcription-text {
+        font-style: italic;
+        color: #ddd;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background: rgba(255,255,255,0.1);
+        border-radius: 6px;
+    }
 
     /* --- AUTH UI --- */
     #login-view {
@@ -374,6 +383,51 @@
             padding-top: max(0.5rem, env(safe-area-inset-top));
             padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
         }
+    }
+
+    /* Loading indicator */
+    .loading-dots {
+        display: inline-block;
+        position: relative;
+        width: 80px;
+        height: 20px;
+    }
+    .loading-dots div {
+        position: absolute;
+        top: 8px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--purple);
+        animation-timing-function: cubic-bezier(0, 1, 1, 0);
+    }
+    .loading-dots div:nth-child(1) {
+        left: 8px;
+        animation: loading-dots1 0.6s infinite;
+    }
+    .loading-dots div:nth-child(2) {
+        left: 8px;
+        animation: loading-dots2 0.6s infinite;
+    }
+    .loading-dots div:nth-child(3) {
+        left: 32px;
+        animation: loading-dots2 0.6s infinite;
+    }
+    .loading-dots div:nth-child(4) {
+        left: 56px;
+        animation: loading-dots3 0.6s infinite;
+    }
+    @keyframes loading-dots1 {
+        0% { transform: scale(0); }
+        100% { transform: scale(1); }
+    }
+    @keyframes loading-dots3 {
+        0% { transform: scale(1); }
+        100% { transform: scale(0); }
+    }
+    @keyframes loading-dots2 {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(24px, 0); }
     }
 </style>
 </head>
@@ -548,6 +602,10 @@
     let microphone = null;
     let javascriptNode = null;
 
+    // Speech recognition
+    let recognition = null;
+    let isRecognizing = false;
+
     // Human-like responses database
     const humanResponses = {
         greetings: [
@@ -671,6 +729,169 @@
         return responses[Math.floor(Math.random() * responses.length)];
     }
 
+    // --- SPEECH RECOGNITION ---
+
+    function initializeSpeechRecognition() {
+        // Check if browser supports speech recognition
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            console.warn('Speech recognition not supported in this browser');
+            return false;
+        }
+
+        // Create speech recognition object
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = function() {
+            isRecognizing = true;
+            console.log('Speech recognition started');
+        };
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            console.log('Speech recognized:', transcript);
+            processVoiceMessage(transcript);
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            isRecognizing = false;
+            
+            // Show error message to user
+            if (event.error === 'not-allowed') {
+                addMessage("I need microphone permission to listen to your voice messages. Please allow microphone access and try again.", 'bot');
+            } else {
+                addMessage("Sorry, I had trouble understanding that. Could you try speaking again?", 'bot');
+            }
+        };
+
+        recognition.onend = function() {
+            isRecognizing = false;
+            console.log('Speech recognition ended');
+        };
+
+        return true;
+    }
+
+    function transcribeAudio(audioBlob) {
+        return new Promise((resolve, reject) => {
+            // In a real implementation, you would send the audio blob to a speech-to-text API
+            // For this demo, we'll use the browser's built-in speech recognition
+            
+            if (!recognition && !initializeSpeechRecognition()) {
+                reject(new Error('Speech recognition not available'));
+                return;
+            }
+
+            // Create a temporary audio element to play the blob
+            const audio = new Audio(URL.createObjectURL(audioBlob));
+            
+            audio.onended = function() {
+                // Start speech recognition after audio playback
+                try {
+                    recognition.start();
+                    
+                    // Set a timeout to handle cases where recognition doesn't start
+                    setTimeout(() => {
+                        if (!isRecognizing) {
+                            reject(new Error('Speech recognition timeout'));
+                        }
+                    }, 5000);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            // Play the audio (this will trigger the recognition)
+            audio.play().catch(error => {
+                reject(new Error('Could not play audio: ' + error.message));
+            });
+
+            // Set up a one-time result handler
+            const resultHandler = function(event) {
+                const transcript = event.results[0][0].transcript;
+                resolve(transcript);
+            };
+
+            recognition.onresult = resultHandler;
+            
+            // Clean up after recognition
+            recognition.onend = function() {
+                recognition.onresult = null;
+            };
+        });
+    }
+
+    function processVoiceMessage(transcript) {
+        // Add the transcribed message to chat
+        addMessage(transcript, 'user', true, false, true);
+        
+        // Show processing indicator
+        setState('thinking');
+        
+        // Process the transcribed text and generate response
+        setTimeout(() => {
+            let botResponse;
+            
+            if (transcript.length < 100 && 
+                (transcript.match(/\b(hi|hello|hey|how are you|thanks|thank you|bye|goodbye|you're|good)\b/i) || 
+                 transcript.includes('?'))) {
+                
+                // Use human-like response for simple conversational messages
+                botResponse = generateHumanResponse(transcript);
+            } else {
+                // For more complex queries, generate a contextual response
+                botResponse = generateContextualResponse(transcript);
+            }
+            
+            setState('reply');
+            setTimeout(() => {
+                setState('talking');
+                addMessage(botResponse, 'bot');
+                setChatEnabled(true);
+                setTimeout(() => setState(''), 800);
+            }, 420);
+        }, 1000);
+    }
+
+    function generateContextualResponse(transcript) {
+        const lowerTranscript = transcript.toLowerCase();
+        
+        // Contextual responses based on common voice message content
+        if (lowerTranscript.includes('weather')) {
+            return "You mentioned the weather! 🌤️ Unfortunately I don't have real-time weather data, but I hope it's beautiful where you are!";
+        }
+        
+        if (lowerTranscript.includes('time')) {
+            return `You asked about the time! ⏰ Right now it's ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}. How can I help you with your schedule?`;
+        }
+        
+        if (lowerTranscript.includes('remind') || lowerTranscript.includes('remember')) {
+            return "I heard you mention reminders! 📝 While I can't set actual reminders, I'd be happy to help you organize your thoughts or create a to-do list!";
+        }
+        
+        if (lowerTranscript.includes('joke') || lowerTranscript.includes('funny')) {
+            const jokes = [
+                "Why don't scientists trust atoms? Because they make up everything! 😄",
+                "Why did the scarecrow win an award? He was outstanding in his field! 🌾",
+                "What do you call a fake noodle? An impasta! 🍝"
+            ];
+            return jokes[Math.floor(Math.random() * jokes.length)];
+        }
+        
+        if (lowerTranscript.includes('story') || lowerTranscript.includes('tell me')) {
+            return "I'd love to share a story with you! 📖 What kind of story would you like to hear? A fantasy adventure, a mystery, or something inspirational?";
+        }
+        
+        // Default contextual response
+        return `Thanks for your voice message! I heard you say: "${transcript}". That's really interesting! Could you tell me more about that? 😊`;
+    }
+
     // --- VIEW MANAGEMENT ---
 
     function showAuthView() {
@@ -693,6 +914,9 @@
         document.getElementById("eyes").style.display = 'flex';
 
         loadChatHistory();
+        
+        // Initialize speech recognition when chat view is shown
+        initializeSpeechRecognition();
     }
     
     // --- CHAT LOGIC ---
@@ -707,7 +931,7 @@
         }
     }
 
-    function addMessage(text, sender, isNewMessage = true, isTool = false, isVoice = false, voiceBlob = null) {
+    function addMessage(text, sender, isNewMessage = true, isTool = false, isVoice = false, voiceBlob = null, transcription = null) {
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message', isTool ? 'tool-message' : (sender === 'user' ? 'user-message' : 'bot-message'));
         
@@ -733,6 +957,14 @@
             voiceMessageDiv.appendChild(textSpan);
             
             messageDiv.appendChild(voiceMessageDiv);
+            
+            // Add transcription if available
+            if (transcription) {
+                const transcriptionDiv = document.createElement('div');
+                transcriptionDiv.classList.add('transcription-text');
+                transcriptionDiv.textContent = `Transcribed: ${transcription}`;
+                messageDiv.appendChild(transcriptionDiv);
+            }
         } else {
             messageDiv.textContent = text;
         }
@@ -744,7 +976,8 @@
                 role: sender, 
                 text,
                 isVoice: isVoice,
-                voiceBlob: isVoice ? URL.createObjectURL(voiceBlob) : null
+                voiceBlob: isVoice ? URL.createObjectURL(voiceBlob) : null,
+                transcription: transcription
             });
             sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
         }
@@ -765,7 +998,7 @@
                         fetch(m.voiceBlob)
                             .then(res => res.blob())
                             .then(blob => {
-                                addMessage(m.text, m.role, false, false, true, blob);
+                                addMessage(m.text, m.role, false, false, true, blob, m.transcription);
                             })
                             .catch(() => {
                                 // If blob loading fails, show text only
@@ -989,22 +1222,42 @@
         setChatEnabled(false);
         setState('thinking');
         
-        // For now, we'll just add a placeholder message
-        // In a real implementation, you would send the audio to a speech-to-text API
-        // and then send the transcribed text to the chatbot
-        
+        // Show temporary voice message in chat
         addMessage("Voice message", 'user', true, false, true, audioBlob);
         
-        // Simulate processing time with human-like response
-        setTimeout(() => {
+        try {
+            // Transcribe the audio
+            addMessage("🎤 Listening to your voice message...", 'system', false, true);
+            
+            const transcription = await transcribeAudio(audioBlob);
+            
+            // Update the message with transcription
+            chatContainer.removeChild(chatContainer.lastChild); // Remove the processing message
+            chatContainer.removeChild(chatContainer.lastChild); // Remove the voice message
+            
+            // Add the voice message with transcription
+            addMessage("Voice message", 'user', true, false, true, audioBlob, transcription);
+            
+            // Process the transcription and generate response
+            processVoiceMessage(transcription);
+            
+        } catch (error) {
+            console.error('Voice message processing error:', error);
+            
+            // Remove processing message
+            if (chatContainer.lastChild && chatContainer.lastChild.textContent.includes("Listening")) {
+                chatContainer.removeChild(chatContainer.lastChild);
+            }
+            
+            // Fallback response if speech recognition fails
             setState('reply');
             setTimeout(() => {
                 setState('talking');
-                addMessage("Thanks for the voice message! I heard you loud and clear. In a full implementation, I'd be able to understand and respond to what you said! 😊", 'bot');
+                addMessage("I had trouble understanding your voice message. Could you try speaking again or type your message instead? 😊", 'bot');
                 setChatEnabled(true);
                 setTimeout(() => setState(''), 800);
             }, 420);
-        }, 1500);
+        }
     }
 
     // --- NEW GEMINI TOOL LOGIC ---
